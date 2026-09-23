@@ -27,9 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site-header">
           <div className="inner">
             <Link href="/work-with-tim" className="brand" aria-label="Roth Academy, Work with Tim Berry">
-              <span className="brand-mark" aria-hidden="true">
-                R
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="brand-emblem" src="/brand/roth-academy-emblem.png" alt="" width={346} height={310} />
               <span className="brand-name">
                 Roth Academy<span className="brand-sub">Work with Tim Berry</span>
               </span>
@@ -40,7 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="site-main">{children}</div>
         <footer className="site-footer">
           <div className="inner">
-            <strong>Roth Academy</strong>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="footer-logo" src="/brand/roth-academy-logo.png" alt="Roth Academy" width={464} height={503} />
             <span>Work With Tim Berry · Consulting requests reviewed before scheduling</span>
             <span>Submitting a request does not create an attorney-client relationship.</span>
           </div>
