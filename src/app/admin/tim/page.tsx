@@ -104,7 +104,7 @@ export default async function TimDashboards() {
                   </td>
                   <td className="actions">
                     <form action={timNeedsChangesAction.bind(null, r.id)} className="inline-form">
-                      <input type="text" name="note" placeholder="Note (optional)" aria-label="Note (optional)" style={{ width: 160, padding: "6px 8px", fontSize: "0.85rem" }} />
+                      <input type="text" name="note" placeholder="Note (optional)" aria-label="Note (optional)" className="note-input" />
                       <button className="btn btn-bad btn-sm" type="submit">Needs Changes</button>
                     </form>
                   </td>

@@ -5,6 +5,7 @@ import { resolveProposalToken } from "@/lib/workflow/proposal";
 import { CLIENT_DECLINE_REASONS } from "@/lib/domain";
 import { AcceptButton, DeclineForm, SignForm } from "./ProposalActions";
 import { payNowAction } from "../../actions";
+import { PageHero } from "../../../PageHero";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your Proposed Scope of Work", robots: { index: false, follow: false, nocache: true } };
@@ -26,10 +27,12 @@ export default async function ProposalPage({ params, searchParams }: { params: P
 
   if (!req) {
     return (
-      <main className="container">
+      <main>
+        <PageHero eyebrow="Private proposal" title="This link isn’t available" />
+        <div className="container">
         <div className="card">
-          <h1>This link isn&rsquo;t available</h1>
           <p>This proposal link is not valid or is no longer active. If you believe this is a mistake, please reply to the email you received.</p>
+        </div>
         </div>
       </main>
     );
@@ -41,12 +44,10 @@ export default async function ProposalPage({ params, searchParams }: { params: P
   const needsPayment = req.status === "Accepted - Payment Pending" && !needsSignature;
 
   return (
-    <main className="container">
+    <main>
+      <PageHero eyebrow={`Private proposal · Prepared for ${req.clientName}`} title={<>Your proposed <em>scope of work.</em></>} lead="Reviewed and approved by Tim Berry. Read it through, then accept or decline below." />
+      <div className="container">
       <div className="card">
-        <p className="muted small" style={{ marginBottom: 4 }}>
-          Prepared for {req.clientName}
-        </p>
-        <h1>Your Proposed Scope of Work</h1>
 
         {declined && req.status === "Proposal Declined" && (
           <div className="notice info">Thank you for letting us know. You won&rsquo;t receive further follow-up about this proposal.</div>
@@ -100,12 +101,13 @@ export default async function ProposalPage({ params, searchParams }: { params: P
             Your professional fee of <strong>{formatUsd(req.feeAmount)}</strong> is due before work begins.
           </p>
           <form action={payNowAction.bind(null, token)}>
-            <button className="btn btn-primary" type="submit">
+            <button className="btn btn-gold" type="submit">
               Pay securely with Stripe
             </button>
           </form>
         </div>
       )}
+      </div>
     </main>
   );
 }
