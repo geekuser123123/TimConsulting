@@ -145,3 +145,6 @@ table.dash td.actions { white-space: nowrap; }
 .proposal-section:first-of-type { padding-top: 0; margin-top: 0; }
 .proposal-section:first-of-type h2 { margin-top: 0; }
 .inline-form input.note-input { width: 160px; min-height: 36px; padding: 6px 8px; font-size: 0.85rem; }
+/* Keep the footer at the bottom of the window on short pages */
+body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.site-main { flex: 1 0 auto; }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import "./wwt.css";
+import { HeaderNav } from "./HeaderNav";
 
 export const metadata: Metadata = {
   title: { default: "Work With Tim Berry | Roth Academy", template: "%s | Roth Academy" },
@@ -33,17 +34,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Roth Academy<span className="brand-sub">Work with Tim Berry</span>
               </span>
             </Link>
-            <nav className="header-nav" aria-label="Page navigation">
-              <Link href="/work-with-tim#about">About the call</Link>
-              <Link href="/work-with-tim#process">How it works</Link>
-              <Link href="/work-with-tim#questions">Questions</Link>
-              <Link className="btn btn-primary" href="/work-with-tim#request">
-                Request a Call <span aria-hidden="true">↗</span>
-              </Link>
-            </nav>
+            <HeaderNav />
           </div>
         </header>
-        {children}
+        <div className="site-main">{children}</div>
         <footer className="site-footer">
           <div className="inner">
             <strong>Roth Academy</strong>
