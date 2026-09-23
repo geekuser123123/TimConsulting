@@ -1,0 +1,36 @@
+{
+  "name": "tim-consulting",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tim Berry Consulting System V1 - intake, review, scheduling, scope, proposal, payment and matter opening, backed by Tape CRM.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "tape:check": "tsx scripts/tape-check.ts",
+    "tape:doc": "tsx scripts/tape-doc.ts > docs/TAPE_FIELDS.md"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "next": "^15.5.26",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1",
+    "stripe": "^22.6.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
+  }
+}

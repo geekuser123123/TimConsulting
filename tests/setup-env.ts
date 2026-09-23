@@ -1,0 +1,11 @@
+process.env.CRM_DRIVER = "memory";
+process.env.EMAIL_DRIVER = "console";
+process.env.SMS_DRIVER = "console";
+process.env.SCHEDULING_DRIVER = "mock";
+process.env.SITE_URL = "https://consulting.test";
+process.env.TOKEN_SECRET = "test-token-secret-0123456789abcdef0123456789";
+process.env.TIM_NOTIFY_EMAIL = "tim@firm.test";
+process.env.STAFF_NOTIFY_EMAILS = "kevin@firm.test";
+process.env.AI_SUMMARY_ENABLED = "false";
+process.env.ENGAGEMENT_AGREEMENT_REQUIRED = "true";
+process.env.INITIAL_DOCUMENTS_REQUIRED_DEFAULT = "false";
