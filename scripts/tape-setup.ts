@@ -76,14 +76,30 @@ const flag = (name: string) => {
     const url = `${site.replace(/\/$/, "")}/api/webhooks/tape?secret=${encodeURIComponent(secret)}`;
 
     // Pre-flight: is the site reachable, does the secret match, and does the site's Tape token work?
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "system.check" }) }).catch((e) => e as Error);
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "system.check" }), redirect: "manual" }).catch(
+      (e) => e as Error,
+    );
     const text = res instanceof Error ? res.message : await res.text();
-    let check: { ok?: boolean; tape?: string } = {};
+    let check: { ok?: boolean; tape?: string; action?: string } = {};
     try {
       check = JSON.parse(text);
     } catch {}
-    if (res instanceof Error || res.status === 404 || res.status === 405 || (res.ok && check.tape === undefined)) {
-      console.log(`❌ Couldn't reach the webhook on ${site} (${res instanceof Error ? text : `HTTP ${res.status}`}). Check SITE_URL and that the latest code is deployed.`);
+    if (res instanceof Error) {
+      console.log(`❌ Couldn't reach ${site} (${text}). Check SITE_URL.`);
+      process.exit(1);
+    }
+    const location = res.headers.get("location") ?? "";
+    if ((res.status >= 300 && res.status < 400) || /cloudflareaccess|cdn-cgi\/access/i.test(location + text)) {
+      console.log("❌ Cloudflare Access is blocking the webhook (it answered with its sign-in page).");
+      console.log("   Add the Bypass rule for the path api/webhooks (docs/DEPLOY_CLOUDFLARE.md → \"Let webhooks through\"), then run this again.");
+      process.exit(1);
+    }
+    if (res.ok && check.action !== undefined && check.tape === undefined) {
+      console.log("❌ The site is running older code. Wait for the latest Cloudflare deployment to finish, then run this again.");
+      process.exit(1);
+    }
+    if (res.status === 404 || res.status === 405 || (res.ok && check.tape === undefined)) {
+      console.log(`❌ Unexpected answer from ${site} (HTTP ${res.status}): ${text.replace(/\s+/g, " ").slice(0, 160)}`);
       process.exit(1);
     }
     if (res.status === 401) {
