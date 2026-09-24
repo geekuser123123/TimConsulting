@@ -33,7 +33,8 @@ Add these as **Secret** (encrypted) unless noted:
 | `TAPE_CONTACTS_APP_ID`, `TAPE_REQUESTS_APP_ID`, `TAPE_MATTERS_APP_ID` (text) | Tape app IDs |
 | `TAPE_WEBHOOK_SECRET` | random string; `npm run tape:webhook` puts it in the Tape webhook URL |
 | `RESEND_API_KEY` | from resend.com |
-| `EMAIL_FROM` (text) | `onboarding@resend.dev` until your domain is verified in Resend |
+| `EMAIL_FROM` (text) | `Tim Berry Consulting <consulting@mail.therothacademy.com>` (a domain verified in Resend) |
+| `EMAIL_REPLY_TO` (text) | the inbox client replies should go to, e.g. Tim's Google Workspace address (the From address can't receive) |
 | `TIM_NOTIFY_EMAIL`, `STAFF_NOTIFY_EMAILS` (text) | real addresses |
 
 Random string in PowerShell:

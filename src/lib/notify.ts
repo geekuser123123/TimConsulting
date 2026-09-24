@@ -47,9 +47,17 @@ export async function sendEmail(to: string | string[], subject: string, body: st
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${config.email.resendApiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: config.email.from, to: recipients, subject, text: body, html: textToHtml(body) }),
+    body: JSON.stringify({
+      from: config.email.from,
+      to: recipients,
+      ...(config.email.replyTo ? { reply_to: config.email.replyTo } : {}),
+      subject,
+      text: body,
+      html: textToHtml(body),
+    }),
   });
-  if (!res.ok) throw new Error(`Email send failed (${res.status})`);
+  // Resend's error message (e.g. "domain is not verified") helps diagnose setup; it never echoes the email body.
+  if (!res.ok) throw new Error(`Email send failed (${res.status}): ${(await res.text()).slice(0, 200)}`);
 }
 
 export async function sendSms(to: string, body: string): Promise<void> {
