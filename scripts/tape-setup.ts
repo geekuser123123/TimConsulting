@@ -2,7 +2,7 @@
  * One-time (and safe to re-run) Tape setup:
  *
  *   npm run tape:setup                    create/update the four apps, save their IDs to .env.local
- *   npm run tape:setup -- --webhook       also register + verify the Tape → site webhook
+ *   npm run tape:webhook                  also register + verify the Tape → site webhook
  *
  * Reads TAPE_API_KEY (and optionally TAPE_WORKSPACE_ID, TAPE_*_APP_ID, SITE_URL,
  * TAPE_WEBHOOK_SECRET) from the shell or .env.local. See docs/TAPE_SETUP.md.
@@ -34,7 +34,8 @@ const flag = (name: string) => {
   if (!ws) {
     console.log(wanted ? `Workspace "${wanted}" not found. Your workspaces:` : "Which Tape workspace should the apps go in? Your workspaces:");
     for (const w of workspaces) console.log(`  ${w.workspace_id}  ${w.name}`);
-    console.log('\nRun again with:  npm run tape:setup -- --workspace "<name or ID>"');
+    console.log('\nAdd TAPE_WORKSPACE_ID=<name or ID> to .env.local and run npm run tape:setup again.');
+    console.log('(PowerShell shortcut:  $env:TAPE_WORKSPACE_ID="<name or ID>"; npm run tape:setup)');
     process.exit(1);
   }
   console.log(`Workspace: ${ws.name} (${ws.workspace_id})\n`);
@@ -84,7 +85,7 @@ const flag = (name: string) => {
     );
   }
 
-  console.log(problems.length ? "\nSetup finished with warnings." : "\nTape setup complete. Next: npm run tape:check -- --smoke");
+  console.log(problems.length ? "\nSetup finished with warnings." : "\nTape setup complete. Next: npm run tape:smoke");
   process.exit(problems.length ? 1 : 0);
 })().catch((e) => {
   console.error(`\n❌ ${e instanceof Error ? e.message : e}`);

@@ -13,8 +13,8 @@
 
 ## Technical
 
-- [ ] Tape apps built with `npm run tape:setup`; `npm run tape:check -- --smoke` passes
-- [ ] Tape webhook verified (`npm run tape:setup -- --webhook`); accept/decline from inside Tape tested
+- [ ] Tape apps built with `npm run tape:setup`; `npm run tape:smoke` passes
+- [ ] Tape webhook verified (`npm run tape:webhook`); accept/decline from inside Tape tested
 - [ ] Calendly secret event type, token and webhook configured; test booking plus cancellation
 - [ ] Zoom (or other) recording webhook configured; test transcript attaches to the right request
 - [ ] Stripe live keys and webhook; one real low-value test payment made and refunded

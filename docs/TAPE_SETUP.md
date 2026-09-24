@@ -33,9 +33,9 @@ This builds everything in Tape for you:
 | **Contacts** | Reuses an existing app named "Contacts" and adds only missing fields (First Name, Last Name, Email, Phone, State, Current Client). Otherwise creates it. |
 | **Tim Consulting Requests** | Creates the app with every field in [TAPE_FIELDS.md](TAPE_FIELDS.md), including the 13 pipeline statuses. |
 | **Matters** | Created, linked to Contacts and Requests. |
-| **Matter Tasks** | Created, linked to Matters and Requests. Skip it with `npm run tape:setup -- --no-tasks`. |
+| **Matter Tasks** | Created, linked to Matters and Requests. To skip it, run `npx tsx scripts/tape-setup.ts --no-tasks` instead. |
 
-If you have more than one workspace, it lists them. Pick one with `npm run tape:setup -- --workspace "Workspace name"`. To use apps you already have, put their IDs in `.env.local` (`TAPE_CONTACTS_APP_ID=…` etc.) before running.
+If you have more than one workspace, it lists them. Pick one by adding `TAPE_WORKSPACE_ID=Workspace name` (the name or the number) to `.env.local` and running setup again. In PowerShell you can also run `$env:TAPE_WORKSPACE_ID="Workspace name"; npm run tape:setup`. To use apps you already have, put their IDs in `.env.local` (`TAPE_CONTACTS_APP_ID=…` etc.) before running.
 
 Setup saves the app IDs into `.env.local` and prints them. **Add the same values in Cloudflare** (Workers & Pages → tim-consulting → Settings → Variables and Secrets): `TAPE_API_KEY` (as a secret), `TAPE_CONTACTS_APP_ID`, `TAPE_REQUESTS_APP_ID`, `TAPE_MATTERS_APP_ID`, `TAPE_TASKS_APP_ID`, and `TAPE_WEBHOOK_SECRET` (any long random string).
 
@@ -43,10 +43,10 @@ It is safe to run again at any time. It never deletes fields or data; it only ad
 
 **Field names matter; external IDs don't.** The system finds each field by its label (for example "Tim Decision"). You can rearrange fields, hide them, or add your own. Don't rename the listed labels unless you rename them in `src/lib/store/tape-schema.ts` too. If a label is ever renamed by mistake, `npm run tape:check` names it.
 
-## 3. Check it: `npm run tape:check -- --smoke`
+## 3. Check it: `npm run tape:smoke`
 
 ```powershell
-npm run tape:check -- --smoke
+npm run tape:smoke
 ```
 
 This confirms every field and dropdown option is present. With `--smoke` it also creates one test contact and one test request, reads them back, filters, updates, and then deletes them. The expected result is `✅ Write, read, filter and update all work.`
@@ -74,7 +74,7 @@ When Tim changes **Tim Decision** or **Tim Approval** in Tape, Tape tells the si
 
 ```powershell
 # in .env.local: SITE_URL=https://<your live address>  and  TAPE_WEBHOOK_SECRET=<same value as in Cloudflare>
-npm run tape:setup -- --webhook
+npm run tape:webhook
 ```
 
 Setup creates a `record.update` webhook on the Requests app pointing at `https://<site>/api/webhooks/tape?secret=…` and asks Tape to verify it. Tape calls the site with a code, the site confirms it automatically, and setup reports `✅ Webhook verified and active.`
