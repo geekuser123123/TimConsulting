@@ -67,14 +67,20 @@ browser's "HTTP ERROR 405" page (the app only accepts POSTs there), not the Clou
 login page.
 
 ## 4. Domain
-Because rothacademy.com is on Cloudflare, give the app its own subdomain:
-Worker → **Settings → Domains & Routes → Add → Custom domain**, e.g. `work.rothacademy.com`.
-Then link **Roth Academy → Work With Tim** to `https://work.rothacademy.com/work-with-tim` and
-update `SITE_URL`.
+The Roth Academy site is `therothacademy.com` (WordPress). Its DNS is not in this Cloudflare
+account, so the app runs on its `workers.dev` address until a custom domain is set up. Two options:
 
-(A path route such as `rothacademy.com/work-with-tim*` is possible, but the app also needs
-`/admin`, `/api`, `/_next` and `/brand` paths, which would clash with the main site. A subdomain
-avoids that.)
+- **Subdomain via a CNAME (DNS stays where it is):** Workers custom domains need the domain's DNS
+  on Cloudflare, so this requires moving `therothacademy.com`'s nameservers to Cloudflare (Domains →
+  Add a domain; the WordPress site keeps working once its existing records are copied over). Then
+  Worker → **Settings → Domains & Routes → Add → Custom domain** → `work.therothacademy.com`.
+- **Keep `workers.dev`** and link **Roth Academy → Work With Tim** straight to
+  `https://tim-consulting.<you>.workers.dev/work-with-tim`.
+
+Either way, update `SITE_URL`, the Access bypass hostname, and re-run `npm run tape:webhook`.
+
+(A path such as `therothacademy.com/work-with-tim` isn't practical: the app also needs `/admin`,
+`/api`, `/_next` and `/brand`, which would clash with WordPress. A subdomain avoids that.)
 
 ## 5. Reminders
 The Cron Trigger in `wrangler.jsonc` calls the follow-up sweep every 10 minutes. Nothing else to set
