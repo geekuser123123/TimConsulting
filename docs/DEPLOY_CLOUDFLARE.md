@@ -20,7 +20,7 @@ your `.env.local` test settings.
 ## 2. Settings (Worker → Settings → Variables and Secrets)
 
 `wrangler.jsonc` already sets the non-secret defaults for a private preview:
-`CRM_DRIVER=tape`, `EMAIL_DRIVER=resend`, `SMS_DRIVER=off`, `SCHEDULING_DRIVER=mock`, `PREVIEW_MODE=true`.
+`CRM_DRIVER=tape`, `EMAIL_DRIVER=resend`, `SMS_DRIVER=off`, `SCHEDULING_DRIVER=builtin`, `PREVIEW_MODE=true`.
 
 Add these as **Secret** (encrypted) unless noted:
 
@@ -88,8 +88,7 @@ The Cron Trigger in `wrangler.jsonc` calls the follow-up sweep every 10 minutes.
 up. Check it under Worker → **Settings → Triggers** and in the Worker's logs.
 
 ## 6. Going live
-Remove `PREVIEW_MODE` (or set it to `false`), set `SCHEDULING_DRIVER=calendly` with the Calendly
-secrets, add the Stripe secrets, turn `SMS_DRIVER` to `twilio` when ready, remove the Access
+Remove `PREVIEW_MODE` (or set it to `false`), check the built-in calendar settings (INTEGRATIONS.md), add the Stripe secrets, turn `SMS_DRIVER` to `twilio` when ready, remove the Access
 protection, and finish LAUNCH_CHECKLIST.md. Webhook URLs for Stripe/Calendly/Zoom/Tape use your
 `SITE_URL` (see INTEGRATIONS.md).
 

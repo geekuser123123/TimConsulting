@@ -81,7 +81,7 @@ describe("dashboard sessions", () => {
 });
 
 describe("preview mode", () => {
-  it("allows test scheduler and checkout in production only when PREVIEW_MODE=true", async () => {
+  it("allows test checkout in production only when PREVIEW_MODE=true; the built-in calendar is always allowed", async () => {
     const { config } = await import("@/lib/config");
     const { mockPaymentsEnabled } = await import("@/lib/payments");
     const env = process.env as Record<string, string | undefined>;
@@ -91,10 +91,9 @@ describe("preview mode", () => {
       env.SCHEDULING_DRIVER = "mock";
       delete env.STRIPE_SECRET_KEY;
       delete env.PREVIEW_MODE;
-      expect(() => config.scheduling.driver).toThrow(/not allowed in production/);
+      expect(config.scheduling.driver).toBe("builtin"); // "mock" is the old name for the built-in calendar
       expect(mockPaymentsEnabled()).toBe(false);
       env.PREVIEW_MODE = "true";
-      expect(config.scheduling.driver).toBe("mock");
       expect(mockPaymentsEnabled()).toBe(true);
     } finally {
       for (const [k, v] of Object.entries(saved)) if (v === undefined) delete env[k]; else env[k] = v;

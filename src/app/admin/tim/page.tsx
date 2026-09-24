@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { TIM_DECLINE_REASONS } from "@/lib/domain";
 import { getStore } from "@/lib/store";
-import { formatUsd } from "@/lib/workflow/core";
+import { formatPhone } from "@/lib/normalize";
+import { formatUsd, formatWhen } from "@/lib/workflow/core";
 import { timAcceptAction, timApproveScopeAction, timDeclineAction, timNeedsChangesAction } from "../actions";
 
 export const metadata: Metadata = { title: "Tim's Dashboards" };
@@ -9,11 +10,55 @@ export const dynamic = "force-dynamic";
 
 export default async function TimDashboards() {
   const store = getStore();
-  const [requests, scopes] = await Promise.all([store.listRequests(["Pending Tim Review"]), store.listRequests(["Pending Tim Scope Approval"])]);
+  const [requests, scopes, scheduled] = await Promise.all([
+    store.listRequests(["Pending Tim Review"]),
+    store.listRequests(["Pending Tim Scope Approval"]),
+    store.listRequests(["Discovery Scheduled"]),
+  ]);
+  const cutoff = Date.now() - 2 * 3600e3; // keep a call on the list for 2 hours after its start
+  const calls = scheduled
+    .filter((r) => r.scheduledAt && Date.parse(r.scheduledAt) >= cutoff)
+    .sort((a, b) => a.scheduledAt!.localeCompare(b.scheduledAt!));
 
   return (
     <main className="container wide">
-      <h1>Requests Waiting for Tim</h1>
+      <h1>Upcoming Calls</h1>
+      <div className="table-wrap">
+        {calls.length === 0 ? (
+          <div className="empty">No discovery calls booked.</div>
+        ) : (
+          <table className="dash">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Client</th>
+                <th>Call</th>
+                <th>Goal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {calls.map((r) => {
+                const tel = r.meetingUrl?.startsWith("tel:") ? r.meetingUrl.slice(4) : undefined;
+                return (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>{formatWhen(r.scheduledAt)}</strong>
+                    </td>
+                    <td>
+                      <a href={`/admin/staff/${r.id}`}>{r.clientName}</a>
+                      {!r.recordingConsent && <div><span className="badge warn">Do not record</span></div>}
+                    </td>
+                    <td>{tel ? <a href={`tel:${tel}`}>{formatPhone(tel)}</a> : r.meetingUrl ? <a href={r.meetingUrl}>Join link</a> : "—"}</td>
+                    <td><div className="clamp">{r.clientGoal}</div></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <h1 style={{ marginTop: 40 }}>Requests Waiting for Tim</h1>
       <div className="table-wrap">
         {requests.length === 0 ? (
           <div className="empty">Nothing waiting. 🎉</div>

@@ -19,7 +19,7 @@
     "CRM_DRIVER": "tape",
     "EMAIL_DRIVER": "resend",
     "SMS_DRIVER": "off",
-    "SCHEDULING_DRIVER": "mock",
+    "SCHEDULING_DRIVER": "builtin",
     "PREVIEW_MODE": "true"
   },
   // Keep dashboard-set variables when deploying from the command line.

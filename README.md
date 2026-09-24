@@ -38,7 +38,7 @@ Minimal `.env.local` for local development:
 ```
 CRM_DRIVER=memory
 MEMORY_STORE_FILE=.data/dev-store.json
-SCHEDULING_DRIVER=mock
+SCHEDULING_DRIVER=builtin
 EMAIL_DRIVER=console
 SMS_DRIVER=console
 TIM_DASHBOARD_PASSWORD=tim-dev
@@ -58,7 +58,7 @@ npm run build
 ## Going live
 
 1. Build the Tape apps, views and workflows in **[docs/TAPE_SETUP.md](docs/TAPE_SETUP.md)** (field list: [docs/TAPE_FIELDS.md](docs/TAPE_FIELDS.md)), then run `npm run tape:check` against the real workspace.
-2. Connect Calendly, Zoom (or another recorder), Stripe, email and SMS: **[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)**.
+2. Set Tim's calendar hours, connect Stripe, email, SMS and call recording: **[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)**.
 3. Get Tim's sign-off on everything in **[docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)**: consent wording, engagement agreement, retention, AI provider approval.
 4. Deploy on Cloudflare: **[docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md)**. Private preview first, then go live.
 
