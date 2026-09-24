@@ -55,8 +55,9 @@ the Access application, add a second **public hostname** for the same domain wit
 **Include: Everyone**. Do the same for `api/cron` if you ever call the sweep from outside Cloudflare
 (the built-in Cron Trigger doesn't need it).
 
-Check it: opening `https://<site>/api/webhooks/tape` in a private browser window should show
-`{"error":"Unauthorized"}` from the app, not the Cloudflare Access login page.
+Check it: opening `https://<site>/api/webhooks/tape` in a private browser window should show the
+browser's "HTTP ERROR 405" page (the app only accepts POSTs there), not the Cloudflare Access
+login page.
 
 ## 4. Domain
 Because rothacademy.com is on Cloudflare, give the app its own subdomain:
