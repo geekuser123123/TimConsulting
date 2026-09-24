@@ -215,3 +215,21 @@ export const config = {
     return env("CRON_SECRET", process.env.NODE_ENV === "production" ? undefined : "dev-cron-secret");
   },
 };
+
+/**
+ * Settings that are required for the chosen drivers but not set. Names only, never values.
+ * Shown to signed-in Tim/staff on the internal pages so a half-configured site explains itself.
+ */
+export function missingSettings(): string[] {
+  const has = (k: string) => Boolean(process.env[k]);
+  const need: string[] = [];
+  const crm = process.env.CRM_DRIVER || (process.env.NODE_ENV === "production" ? "" : "memory");
+  if (!crm) need.push("CRM_DRIVER");
+  if (crm === "tape") need.push("TAPE_API_KEY", "TAPE_CONTACTS_APP_ID", "TAPE_REQUESTS_APP_ID", "TAPE_MATTERS_APP_ID", "TAPE_WEBHOOK_SECRET");
+  if (process.env.EMAIL_DRIVER === "resend") need.push("RESEND_API_KEY", "TIM_NOTIFY_EMAIL", "STAFF_NOTIFY_EMAILS");
+  if (process.env.SMS_DRIVER === "twilio") need.push("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER");
+  if (process.env.SCHEDULING_DRIVER === "calendly") need.push("CALENDLY_API_TOKEN", "CALENDLY_DISCOVERY_EVENT_TYPE_URI", "CALENDLY_WEBHOOK_SIGNING_KEY");
+  if (process.env.NODE_ENV === "production") need.push("SITE_URL", "TOKEN_SECRET", "SESSION_SECRET", "CRON_SECRET");
+  return need.filter((k) => !has(k));
+}
+
