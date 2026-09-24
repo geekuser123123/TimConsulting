@@ -70,7 +70,7 @@ login page.
 The Roth Academy site is `therothacademy.com` (WordPress). Its DNS is not in this Cloudflare
 account, so the app runs on its `workers.dev` address until a custom domain is set up. Two options:
 
-- **Subdomain via a CNAME (DNS stays where it is):** Workers custom domains need the domain's DNS
+- **Own subdomain (`work.therothacademy.com`):** Workers custom domains need the domain's DNS
   on Cloudflare, so this requires moving `therothacademy.com`'s nameservers to Cloudflare (Domains →
   Add a domain; the WordPress site keeps working once its existing records are copied over). Then
   Worker → **Settings → Domains & Routes → Add → Custom domain** → `work.therothacademy.com`.
