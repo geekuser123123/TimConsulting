@@ -1,9 +1,12 @@
 /**
- * Field map for the Tape apps. The `externalId` values are what you set as each field's
- * external ID in Tape (Field settings → Developer → External ID). Keep this file and the Tape
- * app in sync — `npm run tape:check` verifies every mapped external ID exists.
+ * Field map for the Tape apps.
  *
- * `docs/TAPE_SETUP.md` is generated from this list (`npm run tape:doc`).
+ * `npm run tape:setup` creates these fields in Tape using the labels below. At runtime each field
+ * is matched to the live Tape field by label (case-insensitive), falling back to the external ID,
+ * so staff can freely rename a field's *external ID* in Tape but should not rename its label
+ * without also changing it here. `npm run tape:check` verifies the live workspace matches.
+ *
+ * `docs/TAPE_FIELDS.md` is generated from this list (`npm run tape:doc`).
  */
 import {
   CLIENT_DECLINE_REASONS,
@@ -24,14 +27,18 @@ export interface TapeFieldDef {
   internal?: boolean;
   /** Stored as JSON text in Tape (arrays/objects). */
   json?: boolean;
+  /** For relation fields: which of our apps the field points to. */
+  relates?: TapeAppKey;
 }
+
+export type TapeAppKey = "contacts" | "requests" | "matters" | "tasks";
 
 type RequestKey = Exclude<keyof ConsultingRequest, "id">;
 
 export const REQUEST_FIELDS: Record<RequestKey, TapeFieldDef> = {
   status: { externalId: "status", label: "Status", type: "category", section: "Pipeline", options: PIPELINE_STATUSES },
 
-  contactId: { externalId: "contact", label: "Linked Contact", type: "relation", section: "Client" },
+  contactId: { externalId: "contact", label: "Linked Contact", type: "relation", section: "Client", relates: "contacts" },
   clientName: { externalId: "client_name", label: "Client Name", type: "text", section: "Client" },
   currentClient: { externalId: "current_client", label: "Current Client", type: "yes_no", section: "Client" },
   existingAcademyClient: { externalId: "academy_client", label: "IRA Ideas / Tax Academy Client", type: "yes_no", section: "Client" },
@@ -150,16 +157,23 @@ export const CONTACT_FIELDS = {
 
 export const MATTER_FIELDS = {
   title: { externalId: "title", label: "Matter Title", type: "text", section: "Matter" },
-  contactId: { externalId: "contact", label: "Client", type: "relation", section: "Matter" },
-  requestId: { externalId: "consulting_request", label: "Consulting Request", type: "relation", section: "Matter" },
+  contactId: { externalId: "contact", label: "Client", type: "relation", section: "Matter", relates: "contacts" },
+  requestId: { externalId: "consulting_request", label: "Consulting Request", type: "relation", section: "Matter", relates: "requests" },
   summary: { externalId: "summary", label: "Summary", type: "long_text", section: "Matter" },
   deliverables: { externalId: "deliverables", label: "Deliverables", type: "long_text", section: "Matter" },
 } as const satisfies Record<string, TapeFieldDef>;
 
 export const TASK_FIELDS = {
   title: { externalId: "title", label: "Task", type: "text", section: "Task" },
-  matterId: { externalId: "matter", label: "Matter", type: "relation", section: "Task" },
-  requestId: { externalId: "consulting_request", label: "Consulting Request", type: "relation", section: "Task" },
+  matterId: { externalId: "matter", label: "Matter", type: "relation", section: "Task", relates: "matters" },
+  requestId: { externalId: "consulting_request", label: "Consulting Request", type: "relation", section: "Task", relates: "requests" },
   assignee: { externalId: "assignee", label: "Assigned To", type: "category", section: "Task", options: ["staff", "tim"] },
   description: { externalId: "description", label: "Description", type: "long_text", section: "Task" },
 } as const satisfies Record<string, TapeFieldDef>;
+
+export const TAPE_APPS: Record<TapeAppKey, { name: string; itemName: string; envVar: string; fields: Record<string, TapeFieldDef>; optional?: boolean }> = {
+  contacts: { name: "Contacts", itemName: "Contact", envVar: "TAPE_CONTACTS_APP_ID", fields: CONTACT_FIELDS },
+  requests: { name: "Tim Consulting Requests", itemName: "Consulting Request", envVar: "TAPE_REQUESTS_APP_ID", fields: REQUEST_FIELDS },
+  matters: { name: "Matters", itemName: "Matter", envVar: "TAPE_MATTERS_APP_ID", fields: MATTER_FIELDS },
+  tasks: { name: "Matter Tasks", itemName: "Task", envVar: "TAPE_TASKS_APP_ID", fields: TASK_FIELDS, optional: true },
+};

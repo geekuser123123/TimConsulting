@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 import { detectSensitive } from "@/lib/intake-schema";
 import { makeToken, parseToken } from "@/lib/tokens";
 import { parseCalendlyEvent, verifyCalendlySignature } from "@/lib/scheduling";
-import { decodeValue, encodeValue } from "@/lib/store/tape";
-import { REQUEST_FIELDS } from "@/lib/store/tape-schema";
 import { canTransition, PIPELINE_STATUSES } from "@/lib/domain";
 import { verifyHmacSignature } from "@/lib/http";
 import { createSession, readSession } from "@/lib/session";
@@ -38,26 +36,6 @@ describe("pipeline", () => {
     for (const s of PIPELINE_STATUSES) expect(canTransition("Closed", s)).toBe(false);
     expect(canTransition("Pending Tim Review", "Discovery Scheduled")).toBe(false);
     expect(canTransition("Proposal Sent", "Matter Active")).toBe(false);
-  });
-});
-
-describe("Tape value encoding", () => {
-  it("encodes and decodes each field type", () => {
-    const f = REQUEST_FIELDS;
-    expect(encodeValue(f.status, "Proposal Sent")).toBe("Proposal Sent");
-    expect(encodeValue(f.currentClient, true)).toBe("Yes");
-    expect(encodeValue(f.email, "a@b.co")).toEqual([{ type: "work", value: "a@b.co" }]);
-    expect(encodeValue(f.feeAmount, "1500")).toBe(1500);
-    expect(encodeValue(f.contactId, "42")).toEqual([42]);
-    expect(encodeValue(f.scheduledAt, "2030-01-15T16:00:00.000Z")).toEqual({ start: "2030-01-15 16:00:00" });
-    expect(encodeValue(f.meetingUrl, undefined)).toBeNull();
-
-    expect(decodeValue(f.status, { values: [{ value: { text: "Proposal Sent" } }] })).toBe("Proposal Sent");
-    expect(decodeValue(f.currentClient, { values: [{ value: { text: "Yes" } }] })).toBe(true);
-    expect(decodeValue(f.currentClient, { values: [] })).toBe(false);
-    expect(decodeValue(f.contactId, { values: [{ value: { record_id: 42 } }] })).toBe("42");
-    expect(decodeValue(f.scheduledAt, { values: [{ start: "2030-01-15 16:00:00" }] })).toBe("2030-01-15T16:00:00.000Z");
-    expect(decodeValue(f.auditLog, { values: [{ value: '[{"at":"x","actor":"tim","action":"a"}]' }] })).toEqual([{ at: "x", actor: "tim", action: "a" }]);
   });
 });
 

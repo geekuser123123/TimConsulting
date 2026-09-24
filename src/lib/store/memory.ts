@@ -68,10 +68,11 @@ export class MemoryStore implements CrmStore {
     return r ? structuredClone(r) : null;
   }
 
-  async updateRequest(id: string, patch: RequestPatch) {
+  async updateRequest(id: string, patch: RequestPatch, audit?: AuditEntry) {
     const r = this.data.requests.find((x) => x.id === id);
     if (!r) throw new Error(`Request ${id} not found`);
     Object.assign(r, structuredClone(patch));
+    if (audit) r.auditLog.push(structuredClone(audit));
     this.save();
     return structuredClone(r);
   }

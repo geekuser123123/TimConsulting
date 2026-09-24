@@ -37,11 +37,9 @@ export async function apply(
     throw new WorkflowError(`Cannot move request from "${req.status}" to "${opts.to}"`);
   }
   const fullPatch: RequestPatch = opts.to ? { ...patch, status: opts.to } : patch;
-  const updated = await store.updateRequest(req.id, fullPatch);
   const statusNote = opts.to && opts.to !== req.status ? `status: ${req.status} → ${opts.to}` : undefined;
   const entry = { at: nowIso(), actor, action, detail: [statusNote, opts.detail].filter(Boolean).join("; ") || undefined };
-  await store.appendAudit(req.id, entry);
-  return { ...updated, auditLog: [...updated.auditLog, entry] };
+  return store.updateRequest(req.id, fullPatch, entry);
 }
 
 export function firstName(req: ConsultingRequest): string {

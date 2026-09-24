@@ -1,301 +1,227 @@
 /**
- * Tape CRM adapter (production).
+ * Tape CRM adapter (production). See tape-core.ts for the API client and field codecs.
  *
- * Uses only Tape's supported REST record API — never the beta Automation API.
- * Credentials stay server-side (this module imports "server-only").
- *
- * Everything that depends on Tape's exact wire format lives in the small `TapeClient` class
- * and the `encode`/`decode` helpers below, so if Tape's API differs from what's assumed here
- * only this file changes. Run `npm run tape:check` against the real workspace before launch;
- * see docs/TAPE_SETUP.md → "Verifying the API adapter".
+ * Each app's live field list is fetched once and cached for a few minutes, so field IDs and
+ * category option IDs never need to be copied into configuration. Credentials stay server-side.
  */
 import "server-only";
 import { config } from "../config";
 import type { AuditEntry, Contact, ConsultingRequest, NewConsultingRequest, PipelineStatus, RequestPatch } from "../domain";
 import { normalizeEmail, normalizePhone } from "../normalize";
+import { AppSchema, TapeApiError, TapeClient, TapeSchemaError, type TapeRecord } from "./tape-core";
 import { CONTACT_FIELDS, MATTER_FIELDS, REQUEST_FIELDS, TASK_FIELDS, type TapeFieldDef } from "./tape-schema";
 import type { CrmStore, MatterInput, RequestLookupField, TaskInput } from "./types";
 
-type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
+export { TapeApiError, TapeClient } from "./tape-core";
 
-interface TapeFieldValue {
-  field_id?: number;
-  external_id?: string;
-  type?: string;
-  values?: Json[];
+type RequestKey = keyof typeof REQUEST_FIELDS;
+type ContactKey = keyof typeof CONTACT_FIELDS;
+
+const SCHEMA_TTL_MS = 5 * 60 * 1000;
+
+export interface TapeStoreOptions {
+  client: TapeClient;
+  appIds: {
+    contacts: string;
+    requests: string;
+    matters: string;
+    tasks?: string;
+  };
 }
-export interface TapeRecord {
-  record_id: number;
-  app_id?: number;
-  title?: string;
-  fields: TapeFieldValue[];
-}
-
-export class TapeApiError extends Error {
-  constructor(
-    public status: number,
-    public body: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-export class TapeClient {
-  constructor(
-    private baseUrl = config.tape.baseUrl,
-    private apiKey = config.tape.apiKey,
-    private scheme = config.tape.authScheme,
-  ) {}
-
-  private headers(): HeadersInit {
-    const auth =
-      this.scheme === "basic"
-        ? `Basic ${Buffer.from(`${this.apiKey}:`).toString("base64")}`
-        : `Bearer ${this.apiKey}`;
-    return { Authorization: auth, "Content-Type": "application/json", Accept: "application/json" };
-  }
-
-  async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    for (let attempt = 0; ; attempt++) {
-      const res = await fetch(`${this.baseUrl}${path}`, {
-        method,
-        headers: this.headers(),
-        body: body === undefined ? undefined : JSON.stringify(body),
-        cache: "no-store",
-      });
-      if (res.status === 429 && attempt < 3) {
-        const retryAfter = Number(res.headers.get("retry-after")) || 2 ** attempt;
-        await new Promise((r) => setTimeout(r, retryAfter * 1000));
-        continue;
-      }
-      const text = await res.text();
-      if (!res.ok) {
-        // Never include request bodies in errors — they may contain client information.
-        throw new TapeApiError(res.status, text.slice(0, 500), `Tape API ${method} ${path} failed with ${res.status}`);
-      }
-      return (text ? JSON.parse(text) : {}) as T;
-    }
-  }
-
-  createRecord(appId: string, fields: Record<string, Json>) {
-    return this.request<TapeRecord>("POST", `/record/app/${appId}`, { fields });
-  }
-  getRecord(recordId: string) {
-    return this.request<TapeRecord>("GET", `/record/${recordId}`);
-  }
-  updateRecord(recordId: string, fields: Record<string, Json>) {
-    return this.request<TapeRecord>("PUT", `/record/${recordId}`, { fields });
-  }
-  getApp(appId: string) {
-    return this.request<{ app_id: number; name?: string; fields: { field_id: number; external_id: string; type: string; label?: string }[] }>(
-      "GET",
-      `/app/${appId}`,
-    );
-  }
-
-  /** Filter records of an app where `externalId` equals one of `values`. */
-  async filterRecords(appId: string, filters: { externalId: string; type: string; values: string[] }[], limit = 500) {
-    const out: TapeRecord[] = [];
-    let cursor: string | undefined;
-    do {
-      const res = await this.request<{ records: TapeRecord[]; cursor?: string | null; has_more?: boolean }>(
-        "POST",
-        `/record/app/${appId}/filter`,
-        {
-          filters: filters.map((f) => ({ field_id: f.externalId, type: f.type, match_type: "equal", values: f.values })),
-          limit: Math.min(limit, 500),
-          ...(cursor ? { cursor } : {}),
-        },
-      );
-      out.push(...(res.records ?? []));
-      cursor = res.has_more && res.cursor ? res.cursor : undefined;
-    } while (cursor && out.length < limit);
-    return out;
-  }
-}
-
-// ---------------------------------------------------------------------------------------------
-// Value encoding / decoding
-// ---------------------------------------------------------------------------------------------
-
-function tapeDate(iso: string): { start: string } {
-  // Tape date fields take "YYYY-MM-DD HH:mm:ss" in UTC.
-  const d = new Date(iso);
-  return { start: d.toISOString().replace("T", " ").slice(0, 19) };
-}
-
-export function encodeValue(def: TapeFieldDef, value: unknown): Json {
-  if (value === undefined || value === null || value === "") return null;
-  if (def.json) return JSON.stringify(value);
-  switch (def.type) {
-    case "text":
-    case "long_text":
-      return String(value);
-    case "email":
-      return [{ type: "work", value: String(value) }];
-    case "phone":
-      return [{ type: "mobile", value: String(value) }];
-    case "category":
-      return String(value);
-    case "yes_no":
-      return value ? "Yes" : "No";
-    case "date":
-      return tapeDate(String(value));
-    case "number":
-      return Number(value);
-    case "relation":
-      return [Number(value)];
-  }
-}
-
-function first(values: Json[] | undefined): Json | undefined {
-  return values && values.length ? values[0] : undefined;
-}
-
-function unwrap(v: Json | undefined): Json | undefined {
-  if (v && typeof v === "object" && !Array.isArray(v) && "value" in v) return v.value;
-  return v;
-}
-
-export function decodeValue(def: TapeFieldDef, field: TapeFieldValue | undefined): unknown {
-  if (!field) return undefined;
-  const raw = unwrap(first(field.values));
-  if (raw === undefined || raw === null) return def.type === "yes_no" ? false : undefined;
-  if (def.json) {
-    try {
-      return typeof raw === "string" ? JSON.parse(raw) : raw;
-    } catch {
-      return [];
-    }
-  }
-  switch (def.type) {
-    case "text":
-    case "long_text":
-    case "email":
-    case "phone":
-      return typeof raw === "string" ? raw : String(raw);
-    case "category": {
-      if (typeof raw === "object" && !Array.isArray(raw) && raw && "text" in raw) return raw.text;
-      return String(raw);
-    }
-    case "yes_no": {
-      const text = typeof raw === "object" && !Array.isArray(raw) && raw && "text" in raw ? raw.text : raw;
-      return text === "Yes" || text === true;
-    }
-    case "date": {
-      const start = typeof raw === "object" && !Array.isArray(raw) && raw && "start" in raw ? raw.start : raw;
-      return start ? new Date(`${String(start).replace(" ", "T")}Z`).toISOString() : undefined;
-    }
-    case "number":
-      return Number(raw);
-    case "relation": {
-      const id = typeof raw === "object" && !Array.isArray(raw) && raw && "record_id" in raw ? raw.record_id : raw;
-      return String(id);
-    }
-  }
-}
-
-function encodeFields<K extends string>(defs: Record<K, TapeFieldDef>, data: Partial<Record<K, unknown>>): Record<string, Json> {
-  const out: Record<string, Json> = {};
-  for (const key of Object.keys(data) as K[]) {
-    const def = defs[key];
-    if (!def) continue;
-    out[def.externalId] = encodeValue(def, data[key]);
-  }
-  return out;
-}
-
-function decodeFields<K extends string>(defs: Record<K, TapeFieldDef>, record: TapeRecord): Record<K, unknown> {
-  const byExt = new Map(record.fields.map((f) => [f.external_id, f]));
-  const out = {} as Record<K, unknown>;
-  for (const key of Object.keys(defs) as K[]) {
-    out[key] = decodeValue(defs[key], byExt.get(defs[key].externalId));
-  }
-  return out;
-}
-
-function toRequest(record: TapeRecord): ConsultingRequest {
-  const d = decodeFields(REQUEST_FIELDS, record) as Omit<ConsultingRequest, "id">;
-  return { ...d, auditLog: Array.isArray(d.auditLog) ? d.auditLog : [], id: String(record.record_id) };
-}
-
-function toContact(record: TapeRecord): Contact {
-  const d = decodeFields(CONTACT_FIELDS, record) as Omit<Contact, "id">;
-  return { ...d, id: String(record.record_id) };
-}
-
-// ---------------------------------------------------------------------------------------------
 
 export class TapeStore implements CrmStore {
-  constructor(private client = new TapeClient()) {}
+  private schemas = new Map<string, { at: number; schema: Promise<AppSchema> }>();
+  private readonly client: TapeClient;
+  private readonly apps: TapeStoreOptions["appIds"];
 
-  async findContact(email: string, phone: string): Promise<Contact | null> {
-    const appId = config.tape.contactsAppId;
-    const byEmail = await this.client.filterRecords(appId, [{ externalId: CONTACT_FIELDS.email.externalId, type: "email", values: [normalizeEmail(email)] }], 5);
-    const emailMatch = byEmail.map(toContact).find((c) => normalizeEmail(c.email ?? "") === normalizeEmail(email));
-    if (emailMatch) return emailMatch;
-    const p = normalizePhone(phone);
-    if (!p) return null;
-    const byPhone = await this.client.filterRecords(appId, [{ externalId: CONTACT_FIELDS.phone.externalId, type: "phone", values: [phone, p] }], 5);
-    return byPhone.map(toContact).find((c) => normalizePhone(c.phone ?? "") === p) ?? null;
+  constructor(opts?: TapeStoreOptions) {
+    this.client =
+      opts?.client ??
+      new TapeClient({
+        baseUrl: config.tape.baseUrl,
+        apiKey: config.tape.apiKey,
+      });
+    this.apps = opts?.appIds ?? {
+      contacts: config.tape.contactsAppId,
+      requests: config.tape.requestsAppId,
+      matters: config.tape.mattersAppId,
+      tasks: config.tape.tasksAppId,
+    };
   }
 
-  async createContact(data: Omit<Contact, "id">) {
-    return toContact(await this.client.createRecord(config.tape.contactsAppId, encodeFields(CONTACT_FIELDS, data)));
+  private schema<K extends string>(appId: string, defs: Record<K, TapeFieldDef>, refresh = false): Promise<AppSchema<K>> {
+    const hit = this.schemas.get(appId);
+    if (!refresh && hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.schema as Promise<AppSchema<K>>;
+    const schema = this.client.getApp(appId).then((app) => new AppSchema(app, defs));
+    schema.catch(() => this.schemas.delete(appId));
+    this.schemas.set(appId, {
+      at: Date.now(),
+      schema: schema as Promise<AppSchema>,
+    });
+    return schema;
   }
 
-  async updateContact(id: string, data: Partial<Omit<Contact, "id">>) {
-    return toContact(await this.client.updateRecord(id, encodeFields(CONTACT_FIELDS, data)));
+  /** Run `fn` with the app's schema; if a field/option is missing, re-read the app once and retry. */
+  private async withSchema<K extends string, T>(appId: string, defs: Record<K, TapeFieldDef>, fn: (s: AppSchema<K>) => Promise<T>): Promise<T> {
+    try {
+      return await fn(await this.schema(appId, defs));
+    } catch (e) {
+      if (!(e instanceof TapeSchemaError)) throw e;
+      return fn(await this.schema(appId, defs, true));
+    }
   }
 
-  async createRequest(data: NewConsultingRequest) {
-    return toRequest(await this.client.createRecord(config.tape.requestsAppId, encodeFields(REQUEST_FIELDS, data)));
+  private requests<T>(fn: (s: AppSchema<RequestKey>) => Promise<T>) {
+    return this.withSchema(this.apps.requests, REQUEST_FIELDS, fn);
+  }
+  private contacts<T>(fn: (s: AppSchema<ContactKey>) => Promise<T>) {
+    return this.withSchema(this.apps.contacts, CONTACT_FIELDS, fn);
+  }
+
+  private toRequest(s: AppSchema<RequestKey>, record: TapeRecord): ConsultingRequest {
+    const d = s.decode(record) as unknown as Omit<ConsultingRequest, "id">;
+    return {
+      ...d,
+      auditLog: Array.isArray(d.auditLog) ? d.auditLog : [],
+      id: String(record.record_id),
+    };
+  }
+  private toContact(s: AppSchema<ContactKey>, record: TapeRecord): Contact {
+    return {
+      ...(s.decode(record) as unknown as Omit<Contact, "id">),
+      id: String(record.record_id),
+    };
+  }
+
+  // -- Contacts ---------------------------------------------------------------------------------
+
+  findContact(email: string, phone: string): Promise<Contact | null> {
+    return this.contacts(async (s) => {
+      const e = normalizeEmail(email);
+      const emailField = s.field("email");
+      const byEmail = await this.client.filterRecords(
+        this.apps.contacts,
+        [
+          {
+            field: emailField,
+            match: emailField.field_type === "multi_email" ? "fully_includes" : "equal",
+            values: [e],
+          },
+        ],
+        10,
+      );
+      const hit = byEmail.map((r) => this.toContact(s, r)).find((c) => normalizeEmail(c.email ?? "") === e);
+      if (hit) return hit;
+
+      const p = normalizePhone(phone);
+      if (p.length < 7) return null;
+      const byPhone = await this.client.filterRecords(
+        this.apps.contacts,
+        [
+          {
+            field: s.field("phone"),
+            match: "ends_with",
+            values: [p.slice(-4)],
+          },
+        ],
+        50,
+      );
+      return byPhone.map((r) => this.toContact(s, r)).find((c) => normalizePhone(c.phone ?? "") === p) ?? null;
+    });
+  }
+
+  createContact(data: Omit<Contact, "id">) {
+    return this.contacts(async (s) => this.toContact(s, await this.client.createRecord(this.apps.contacts, s.encode(data))));
+  }
+
+  updateContact(id: string, data: Partial<Omit<Contact, "id">>) {
+    return this.contacts(async (s) => this.toContact(s, await this.client.updateRecord(id, s.encode(data, { clear: true }))));
+  }
+
+  // -- Consulting requests ----------------------------------------------------------------------
+
+  createRequest(data: NewConsultingRequest) {
+    return this.requests(async (s) => this.toRequest(s, await this.client.createRecord(this.apps.requests, s.encode(data))));
   }
 
   async getRequest(id: string) {
+    if (!/^\d+$/.test(id)) return null;
+    let rec: TapeRecord;
     try {
-      const rec = await this.client.getRecord(id);
-      if (rec.app_id !== undefined && String(rec.app_id) !== String(config.tape.requestsAppId)) return null;
-      return toRequest(rec);
+      rec = await this.client.getRecord(id);
     } catch (e) {
-      if (e instanceof TapeApiError && (e.status === 404 || e.status === 400)) return null;
+      if (e instanceof TapeApiError && (e.status === 404 || e.status === 400 || e.status === 403)) return null;
       throw e;
     }
+    if (rec.app && String(rec.app.app_id) !== String(this.apps.requests)) return null;
+    return this.requests(async (s) => this.toRequest(s, rec));
   }
 
-  async updateRequest(id: string, patch: RequestPatch) {
-    return toRequest(await this.client.updateRecord(id, encodeFields(REQUEST_FIELDS, patch)));
-  }
-
-  async listRequests(statuses?: PipelineStatus[]) {
-    const filters = statuses ? [{ externalId: REQUEST_FIELDS.status.externalId, type: "category", values: statuses as string[] }] : [];
-    const records = await this.client.filterRecords(config.tape.requestsAppId, filters, 1000);
-    return records.map(toRequest).sort((a, b) => (a.requestDate ?? "").localeCompare(b.requestDate ?? ""));
-  }
-
-  async findRequestBy(field: RequestLookupField, value: string) {
-    const def = REQUEST_FIELDS[field];
-    const records = await this.client.filterRecords(config.tape.requestsAppId, [{ externalId: def.externalId, type: "text", values: [value] }], 5);
-    return records.map(toRequest).find((r) => r[field] === value) ?? null;
+  updateRequest(id: string, patch: RequestPatch, audit?: AuditEntry) {
+    return this.requests(async (s) => {
+      const fields = { ...patch } as Partial<ConsultingRequest>;
+      if (audit) {
+        // The audit trail is one JSON field, so appending means read → append → write. Doing it in
+        // the same PUT as the patch keeps it to two API calls per workflow step.
+        const current = await this.client.getRecord(id);
+        const log = this.toRequest(s, current).auditLog;
+        fields.auditLog = [...log, audit];
+      }
+      return this.toRequest(s, await this.client.updateRecord(id, s.encode(fields, { clear: true })));
+    });
   }
 
   async appendAudit(id: string, entry: AuditEntry) {
-    const current = await this.getRequest(id);
-    if (!current) throw new Error(`Request ${id} not found`);
-    const log = [...current.auditLog, entry];
-    await this.client.updateRecord(id, { [REQUEST_FIELDS.auditLog.externalId]: JSON.stringify(log) });
+    await this.updateRequest(id, {}, entry);
   }
 
-  async createMatter(data: MatterInput) {
-    const rec = await this.client.createRecord(config.tape.mattersAppId, encodeFields(MATTER_FIELDS, data));
-    return { id: String(rec.record_id) };
+  listRequests(statuses?: PipelineStatus[]) {
+    return this.requests(async (s) => {
+      if (statuses && !statuses.length) return [];
+      const filters = statuses
+        ? [
+            {
+              field: s.field("status"),
+              match: "any",
+              values: statuses as string[],
+            },
+          ]
+        : [];
+      const records = await this.client.filterRecords(this.apps.requests, filters, 5000);
+      return records
+        .map((r) => this.toRequest(s, r))
+        .filter((r) => !statuses || statuses.includes(r.status))
+        .sort((a, b) => (a.requestDate ?? "").localeCompare(b.requestDate ?? ""));
+    });
+  }
+
+  findRequestBy(field: RequestLookupField, value: string) {
+    return this.requests(async (s) => {
+      const records = await this.client.filterRecords(this.apps.requests, [{ field: s.field(field), match: "equal", values: [value] }], 5);
+      return records.map((r) => this.toRequest(s, r)).find((r) => r[field] === value) ?? null;
+    });
+  }
+
+  // -- Matters & tasks --------------------------------------------------------------------------
+
+  createMatter(data: MatterInput) {
+    return this.withSchema(this.apps.matters, MATTER_FIELDS, async (s) => {
+      const rec = await this.client.createRecord(this.apps.matters, s.encode(data));
+      return { id: String(rec.record_id) };
+    });
   }
 
   async createTask(data: TaskInput) {
-    const appId = config.tape.tasksAppId;
+    const appId = this.apps.tasks;
     if (!appId) return { id: "" };
-    const rec = await this.client.createRecord(appId, encodeFields(TASK_FIELDS, data));
-    return { id: String(rec.record_id) };
+    return this.withSchema(appId, TASK_FIELDS, async (s) => {
+      const rec = await this.client.createRecord(appId, s.encode(data));
+      return { id: String(rec.record_id) };
+    });
   }
+}
+
+/** A Tape API client using the configured credentials (for webhook verification etc.). */
+export function tapeClient() {
+  return new TapeClient({ baseUrl: config.tape.baseUrl, apiKey: config.tape.apiKey });
 }

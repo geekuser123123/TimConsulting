@@ -8,7 +8,7 @@ Client requests Tim → Tim accepts/declines → client schedules → discovery 
 → signs engagement → pays if required → matter opens
 ```
 
-Tape is the system of record: every step is written to **one Tim Consulting Request record** (fields + an audit trail). The website, Tape workflows, staff, transcription and Stripe handle everything else.
+Tape is the system of record: every step is written to **one Tim Consulting Request record** (fields + an audit trail). The website, a Tape webhook, staff, transcription and Stripe handle everything else.
 
 **Tim's whole job in the system is four clicks:** Accept or Decline a request, then Approve or send back a scope. He can click them in Tape or on `/admin/tim`.
 
