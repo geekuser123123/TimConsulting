@@ -31,7 +31,7 @@ Add these as **Secret** (encrypted) unless noted:
 | `TIM_DASHBOARD_PASSWORD`, `STAFF_DASHBOARD_PASSWORD` | strong passwords, at least 12 characters (shorter ones are refused on the hosted site) |
 | `TAPE_API_KEY` | from Tape |
 | `TAPE_CONTACTS_APP_ID`, `TAPE_REQUESTS_APP_ID`, `TAPE_MATTERS_APP_ID` (text) | Tape app IDs |
-| `TAPE_WEBHOOK_SECRET` | random string; `npm run tape:setup -- --webhook` puts it in the Tape webhook URL |
+| `TAPE_WEBHOOK_SECRET` | random string; `npm run tape:webhook` puts it in the Tape webhook URL |
 | `RESEND_API_KEY` | from resend.com |
 | `EMAIL_FROM` (text) | `onboarding@resend.dev` until your domain is verified in Resend |
 | `TIM_NOTIFY_EMAIL`, `STAFF_NOTIFY_EMAILS` (text) | real addresses |

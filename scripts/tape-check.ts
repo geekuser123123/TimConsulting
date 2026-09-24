@@ -2,7 +2,7 @@
  * Verifies the live Tape workspace matches src/lib/store/tape-schema.ts.
  *
  *   npm run tape:check                 read-only field check
- *   npm run tape:check -- --smoke      also writes, reads back and deletes one test contact +
+ *   npm run tape:smoke                 also writes, reads back and deletes one test contact +
  *                                      consulting request, to prove the round trip works
  *
  * Reads TAPE_API_KEY and the TAPE_*_APP_ID values from the shell or .env.local.
