@@ -92,6 +92,10 @@ export const config = {
     get from() {
       return env("EMAIL_FROM", "Tim Berry Consulting <consulting@example.com>");
     },
+    /** Where client replies go (the From address on a sending subdomain usually can't receive). */
+    get replyTo() {
+      return process.env.EMAIL_REPLY_TO || undefined;
+    },
     get resendApiKey() {
       return env("RESEND_API_KEY");
     },
@@ -223,7 +227,7 @@ export function missingSettings(): string[] {
   const crm = process.env.CRM_DRIVER || (process.env.NODE_ENV === "production" ? "" : "memory");
   if (!crm) need.push("CRM_DRIVER");
   if (crm === "tape") need.push("TAPE_API_KEY", "TAPE_CONTACTS_APP_ID", "TAPE_REQUESTS_APP_ID", "TAPE_MATTERS_APP_ID", "TAPE_WEBHOOK_SECRET");
-  if (process.env.EMAIL_DRIVER === "resend") need.push("RESEND_API_KEY", "TIM_NOTIFY_EMAIL", "STAFF_NOTIFY_EMAILS");
+  if (process.env.EMAIL_DRIVER === "resend") need.push("RESEND_API_KEY", "EMAIL_FROM", "TIM_NOTIFY_EMAIL", "STAFF_NOTIFY_EMAILS");
   if (process.env.SMS_DRIVER === "twilio") need.push("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER");
   if (process.env.SCHEDULING_DRIVER === "calendly") need.push("CALENDLY_API_TOKEN", "CALENDLY_DISCOVERY_EVENT_TYPE_URI", "CALENDLY_WEBHOOK_SIGNING_KEY");
   if (process.env.NODE_ENV === "production") need.push("SITE_URL", "TOKEN_SECRET", "SESSION_SECRET", "CRON_SECRET");
