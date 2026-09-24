@@ -101,3 +101,25 @@ describe("dashboard sessions", () => {
     expect(await readSession(`${forged}.${sig}`, "secret")).toBeNull();
   });
 });
+
+describe("preview mode", () => {
+  it("allows test scheduler and checkout in production only when PREVIEW_MODE=true", async () => {
+    const { config } = await import("@/lib/config");
+    const { mockPaymentsEnabled } = await import("@/lib/payments");
+    const env = process.env as Record<string, string | undefined>;
+    const saved = { NODE_ENV: env.NODE_ENV, PREVIEW_MODE: env.PREVIEW_MODE, SCHEDULING_DRIVER: env.SCHEDULING_DRIVER, STRIPE_SECRET_KEY: env.STRIPE_SECRET_KEY };
+    try {
+      env.NODE_ENV = "production";
+      env.SCHEDULING_DRIVER = "mock";
+      delete env.STRIPE_SECRET_KEY;
+      delete env.PREVIEW_MODE;
+      expect(() => config.scheduling.driver).toThrow(/not allowed in production/);
+      expect(mockPaymentsEnabled()).toBe(false);
+      env.PREVIEW_MODE = "true";
+      expect(config.scheduling.driver).toBe("mock");
+      expect(mockPaymentsEnabled()).toBe(true);
+    } finally {
+      for (const [k, v] of Object.entries(saved)) if (v === undefined) delete env[k]; else env[k] = v;
+    }
+  });
+});

@@ -32,6 +32,15 @@ function envInt(name: string, fallback: number): number {
   return n;
 }
 
+/**
+ * PREVIEW_MODE=true: a private hosted preview (e.g. password-protected Vercel) may use the built-in
+ * test scheduler and test checkout while real services are being connected. Never set it on the
+ * public site.
+ */
+export function previewMode(): boolean {
+  return envBool("PREVIEW_MODE", false);
+}
+
 export const config = {
   get siteUrl() {
     return env("SITE_URL", devDefault("http://localhost:3000")).replace(/\/$/, "");
@@ -118,7 +127,7 @@ export const config = {
   scheduling: {
     get driver() {
       const d = env("SCHEDULING_DRIVER", devDefault("mock")) as "mock" | "calendly";
-      if (d === "mock" && process.env.NODE_ENV === "production") throw new Error("SCHEDULING_DRIVER=mock is not allowed in production");
+      if (d === "mock" && process.env.NODE_ENV === "production" && !previewMode()) throw new Error("SCHEDULING_DRIVER=mock is not allowed in production");
       return d;
     },
     get calendlyToken() {

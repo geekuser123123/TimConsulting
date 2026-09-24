@@ -24,6 +24,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {process.env.PREVIEW_MODE === "true" && (
+          <div className="preview-banner" role="status">
+            Preview site — not live. Bookings and payments here are test-only.
+          </div>
+        )}
         <header className="site-header">
           <div className="inner">
             <Link href="/work-with-tim" className="brand" aria-label="Roth Academy, Work with Tim Berry">

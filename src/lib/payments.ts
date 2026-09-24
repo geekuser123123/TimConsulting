@@ -7,7 +7,7 @@
  */
 import "server-only";
 import Stripe from "stripe";
-import { config } from "./config";
+import { config, previewMode } from "./config";
 import type { ConsultingRequest } from "./domain";
 
 export interface CheckoutResult {
@@ -73,7 +73,7 @@ export class StripeGateway implements PaymentGateway {
 
 /** Local development without Stripe keys: a fake hosted checkout page on this site. */
 export function mockPaymentsEnabled(): boolean {
-  return !config.stripe.enabled && process.env.NODE_ENV !== "production";
+  return !config.stripe.enabled && (process.env.NODE_ENV !== "production" || previewMode());
 }
 
 class DevMockGateway implements PaymentGateway {
