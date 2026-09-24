@@ -49,11 +49,18 @@ Worker's hostname, allowing only your team's email addresses (free for up to 50 
 
 ### Let webhooks through
 Access blocks everything by default, including the calls Tape, Stripe, Calendly and Zoom make to
-the site. Those endpoints check their own secrets or signatures, so they can safely skip Access. In
-the Access application, add a second **public hostname** for the same domain with path `api/webhooks`
-(Cloudflare matches everything under it) and give it a policy with **Action: Bypass** and
-**Include: Everyone**. Do the same for `api/cron` if you ever call the sweep from outside Cloudflare
-(the built-in Cron Trigger doesn't need it).
+the site. Those endpoints check their own secrets or signatures, so they can safely skip Access:
+
+1. Cloudflare One (Zero Trust) → **Access controls → Applications → Create new application →
+   Self-hosted and private**. (If asked, pick the free Zero Trust plan first.)
+2. **Destinations:** use **+ Add public hostname**, not the Workers destination, because only
+   hostnames take a path. Subdomain `tim-consulting`, domain `<you>.workers.dev` (or your custom
+   domain), path `api/webhooks`.
+3. **Access policies → Create new policy:** name `Public webhooks`, **Action: Bypass**,
+   **Include: Everyone**. Save the policy, then save the application.
+
+Leave the existing "tim-consulting - Cloudflare Workers" application as it is; it keeps the rest of
+the site private.
 
 Check it: opening `https://<site>/api/webhooks/tape` in a private browser window should show the
 browser's "HTTP ERROR 405" page (the app only accepts POSTs there), not the Cloudflare Access
