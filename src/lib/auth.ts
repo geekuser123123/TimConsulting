@@ -22,9 +22,16 @@ function eq(a: string, b: string) {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
+/** Hosted sites refuse weak dashboard passwords (e.g. the local "tim-dev" test password). */
+const MIN_PRODUCTION_PASSWORD = 12;
+function usable(pw: string | undefined): string | undefined {
+  if (!pw) return undefined;
+  return process.env.NODE_ENV === "production" && pw.length < MIN_PRODUCTION_PASSWORD ? undefined : pw;
+}
+
 export function roleForPassword(password: string): Role | null {
-  const tim = config.auth.timPassword;
-  const staff = config.auth.staffPassword;
+  const tim = usable(config.auth.timPassword);
+  const staff = usable(config.auth.staffPassword);
   if (tim && eq(password, tim)) return "tim";
   if (staff && eq(password, staff)) return "staff";
   return null;

@@ -23,7 +23,8 @@ export interface PaymentGateway {
 
 let stripeClient: Stripe | undefined;
 export function stripe(): Stripe {
-  stripeClient ??= new Stripe(config.stripe.secretKey);
+  // Fetch-based HTTP client works on both Node (Vercel) and Cloudflare Workers.
+  stripeClient ??= new Stripe(config.stripe.secretKey, { httpClient: Stripe.createFetchHttpClient() });
   return stripeClient;
 }
 

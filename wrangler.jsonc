@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Cloudflare Workers deployment (via OpenNext). See docs/DEPLOY_CLOUDFLARE.md.
+  "name": "tim-consulting",
+  "main": "cloudflare-worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // Follow-up sweep (reminders, call completion, overdue alerts) every 10 minutes — free on Cloudflare.
+  "triggers": {
+    "crons": ["*/10 * * * *"]
+  },
+  "observability": { "enabled": true },
+  // Non-secret settings. Secrets (API keys, passwords) are added in the dashboard or with `wrangler secret put`.
+  "vars": {
+    "CRM_DRIVER": "tape",
+    "EMAIL_DRIVER": "resend",
+    "SMS_DRIVER": "off",
+    "SCHEDULING_DRIVER": "mock",
+    "PREVIEW_MODE": "true"
+  },
+  // Keep dashboard-set variables when deploying from the command line.
+  "keep_vars": true
+}
