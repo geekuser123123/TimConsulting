@@ -24,6 +24,18 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const type = typeof body?.type === "string" ? body.type : "";
 
+  // Used by `npm run tape:webhook` to check, before registering, that this URL is reachable, the
+  // secret matches, and the site's own Tape token works. Needs the secret, reveals nothing.
+  if (type === "system.check") {
+    try {
+      const { tapeClient } = await import("@/lib/store/tape");
+      await tapeClient().getApp(config.tape.requestsAppId);
+      return NextResponse.json({ ok: true, tape: "ok" });
+    } catch (e) {
+      return NextResponse.json({ ok: false, tape: e instanceof Error ? e.message.slice(0, 200) : "error" });
+    }
+  }
+
   if (type === "hook.verify") {
     const hookId = body?.hook_id;
     const code = body?.code;

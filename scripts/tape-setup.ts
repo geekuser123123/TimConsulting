@@ -74,14 +74,49 @@ const flag = (name: string) => {
     }
     console.log("");
     const url = `${site.replace(/\/$/, "")}/api/webhooks/tape?secret=${encodeURIComponent(secret)}`;
+
+    // Pre-flight: is the site reachable, does the secret match, and does the site's Tape token work?
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "system.check" }) }).catch((e) => e as Error);
+    const text = res instanceof Error ? res.message : await res.text();
+    let check: { ok?: boolean; tape?: string } = {};
+    try {
+      check = JSON.parse(text);
+    } catch {}
+    if (res instanceof Error || res.status === 404 || res.status === 405 || (res.ok && check.tape === undefined)) {
+      console.log(`❌ Couldn't reach the webhook on ${site} (${res instanceof Error ? text : `HTTP ${res.status}`}). Check SITE_URL and that the latest code is deployed.`);
+      process.exit(1);
+    }
+    if (res.status === 401) {
+      console.log("❌ The site rejected the secret: TAPE_WEBHOOK_SECRET in .env.local is not the same as the one in Cloudflare.");
+      console.log("   Copy the exact same value into both (no spaces or quotes), redeploy in Cloudflare, and run this again.");
+      process.exit(1);
+    }
+    if (res.status >= 500 && !/<html/i.test(text)) {
+      console.log(`❌ The site returned an error (HTTP ${res.status}). Usually TAPE_WEBHOOK_SECRET isn't set in Cloudflare → Settings → Variables and Secrets.`);
+      process.exit(1);
+    }
+    if (!res.ok || /<html/i.test(text)) {
+      console.log(`❌ Something in front of the site blocked the request (HTTP ${res.status}). If Cloudflare Access is on, add the api/webhooks Bypass rule (docs/DEPLOY_CLOUDFLARE.md).`);
+      process.exit(1);
+    }
+    if (check.tape !== "ok") {
+      console.log(`❌ The site is reachable and the secret matches, but the site can't talk to Tape: ${check.tape}`);
+      console.log("   Check TAPE_API_KEY and TAPE_REQUESTS_APP_ID in Cloudflare → Settings → Variables and Secrets, then run this again.");
+      process.exit(1);
+    }
+    console.log("✅ Site reachable, secret matches, and the site can reach Tape");
+
     const hook = await registerTapeWebhook(client, appIds.requests!, url, console.log);
-    // Give Tape a moment to call the site, then report the status.
-    await new Promise((r) => setTimeout(r, 8000));
-    const now = (await client.listHooks(appIds.requests!)).find((h) => h.hook_id === hook.hook_id);
+    // Tape calls the site, which confirms the code; poll for up to ~40s.
+    let status = hook.status;
+    for (let i = 0; i < 20 && status !== "active"; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      status = (await client.listHooks(appIds.requests!)).find((h) => h.hook_id === hook.hook_id)?.status ?? "missing";
+    }
     console.log(
-      now?.status === "active"
+      status === "active"
         ? "✅ Webhook verified and active."
-        : `⚠️  Webhook status is "${now?.status ?? "unknown"}". Check that the site is deployed with TAPE_API_KEY and TAPE_WEBHOOK_SECRET set, and that Cloudflare Access lets /api/webhooks/* through; then run with --webhook again.`,
+        : `⚠️  Webhook status is "${status}". Everything on the site checks out, so Tape may be slow to call back. Wait a minute and run npm run tape:webhook again.`,
     );
   }
 
