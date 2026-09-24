@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { groupByDay } from "@/lib/availability";
+import { groupByDay, localDate } from "@/lib/availability";
 import { config } from "@/lib/config";
 import { copy } from "@/lib/messages";
 import { formatPhone } from "@/lib/normalize";
@@ -9,48 +9,26 @@ import { formatWhen } from "@/lib/workflow/core";
 import { resolveScheduleToken } from "@/lib/workflow/review";
 import { bookSlotAction, cancelSlotAction } from "../../actions";
 import { PageHero } from "../../../PageHero";
+import { SlotCalendar } from "./SlotCalendar";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Schedule Your Discovery Call", robots: { index: false, follow: false } };
 
 function SlotPicker({ token, slots, phone, submitLabel }: { token: string; slots: string[]; phone: string; submitLabel: string }) {
   const tz = config.scheduling.timeZone;
-  const day = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" });
   const time = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
-  const zone = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value;
-
-  if (slots.length === 0) {
-    return <div className="notice">There are no open times right now. Please reply to your email and we&rsquo;ll find a time with you.</div>;
-  }
+  const zone = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? "CT";
+  // Labels are formatted here, in Tim's time zone, so the calendar shows the same times for every visitor.
+  const days = groupByDay(slots, tz).map((g) => ({ date: g.date, times: g.slots.map((iso) => ({ iso, label: time.format(new Date(iso)) })) }));
   return (
-    <form action={bookSlotAction.bind(null, token)}>
-      <p className="muted small">All times are Central Time ({zone}).</p>
-      {groupByDay(slots, tz).map((g, i) => (
-        // The first few days are open; later dates fold away to keep the page short.
-        <details key={g.date} className="slot-day" open={i < 3}>
-          <summary>
-            {day.format(new Date(g.slots[0]))} <span className="muted small">· {g.slots.length} times</span>
-          </summary>
-          <div className="slot-grid">
-            {g.slots.map((s) => (
-              <label key={s} className="slot-chip">
-                <input type="radio" name="slot" value={s} required />
-                <span>{time.format(new Date(s))}</span>
-              </label>
-            ))}
-          </div>
-        </details>
-      ))}
-      <label htmlFor="phone" style={{ marginTop: 20 }}>
-        Phone number Tim should call
-      </label>
-      <input id="phone" name="phone" type="tel" defaultValue={formatPhone(phone)} required autoComplete="tel" style={{ maxWidth: 260 }} />
-      <div className="btn-row">
-        <button className="btn btn-gold" type="submit">
-          {submitLabel}
-        </button>
-      </div>
-    </form>
+    <SlotCalendar
+      days={days}
+      today={localDate(Date.now(), tz)}
+      zoneLabel={zone}
+      phone={formatPhone(phone)}
+      submitLabel={submitLabel}
+      action={bookSlotAction.bind(null, token)}
+    />
   );
 }
 
