@@ -67,4 +67,4 @@ Flow:
 
 ## Cron
 
-`GET /api/cron/sweep` with `Authorization: Bearer <CRON_SECRET>` every 10 minutes. `vercel.json` already configures this for Vercel (Pro plan needed for sub-daily crons), or any external scheduler can call it.
+`GET /api/cron/sweep` with `Authorization: Bearer <CRON_SECRET>` every 10 minutes. On Cloudflare this is the Cron Trigger in `wrangler.jsonc` (handled by `cloudflare-worker.js`); nothing else to set up.

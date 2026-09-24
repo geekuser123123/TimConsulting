@@ -60,6 +60,6 @@ npm run build
 1. Build the Tape apps, views and workflows in **[docs/TAPE_SETUP.md](docs/TAPE_SETUP.md)** (field list: [docs/TAPE_FIELDS.md](docs/TAPE_FIELDS.md)), then run `npm run tape:check` against the real workspace.
 2. Connect Calendly, Zoom (or another recorder), Stripe, email and SMS: **[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)**.
 3. Get Tim's sign-off on everything in **[docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)**: consent wording, engagement agreement, retention, AI provider approval.
-4. Deploy: **[docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md)** (recommended, since rothacademy.com is on Cloudflare) or [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md). Private preview first, then go live.
+4. Deploy on Cloudflare: **[docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md)**. Private preview first, then go live.
 
 The Tax Academy / client dashboard can reuse the same backend later: it calls the same `src/lib/workflow` functions, so there's no second system to build.

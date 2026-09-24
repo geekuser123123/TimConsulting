@@ -33,7 +33,7 @@ function envInt(name: string, fallback: number): number {
 }
 
 /**
- * PREVIEW_MODE=true: a private hosted preview (e.g. password-protected Vercel) may use the built-in
+ * PREVIEW_MODE=true: a private hosted preview (e.g. behind Cloudflare Access) may use the built-in
  * test scheduler and test checkout while real services are being connected. Never set it on the
  * public site.
  */

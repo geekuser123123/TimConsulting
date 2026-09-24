@@ -23,7 +23,7 @@ export interface SweepResult {
 
 /**
  * Time-based follow-ups so nobody has to remember anything. Run every 5–15 minutes
- * (Vercel Cron / any scheduler → GET /api/cron/sweep with the CRON_SECRET).
+ * (Cloudflare Cron Trigger / any scheduler → GET /api/cron/sweep with the CRON_SECRET).
  */
 export async function runSweep(now = new Date()): Promise<SweepResult> {
   const store = getStore();
