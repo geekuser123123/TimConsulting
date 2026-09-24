@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { config } from "@/lib/config";
 import { clientIp } from "@/lib/http";
-import { bookMockSlot } from "@/lib/workflow/booking";
+import { bookSlot, cancelSlot } from "@/lib/workflow/booking";
 import { WorkflowError } from "@/lib/workflow/core";
 import { acceptProposal, declineProposal, getPaymentUrl, signEngagement } from "@/lib/workflow/proposal";
 import { resolveScheduleToken } from "@/lib/workflow/review";
@@ -14,14 +14,37 @@ async function meta() {
   return { ip: clientIp({ headers: h }), userAgent: h.get("user-agent") ?? undefined };
 }
 
-export async function bookMockSlotAction(token: string, formData: FormData) {
-  if (config.scheduling.driver !== "mock") throw new Error("Not available");
+/** Built-in calendar: book or move the call. Errors come back to the page as ?error=<message>. */
+export async function bookSlotAction(token: string, formData: FormData) {
+  if (config.scheduling.driver !== "builtin") throw new Error("Not available");
+  const page = `/work-with-tim/schedule/${token}`;
   const req = await resolveScheduleToken(token);
-  if (!req) redirect(`/work-with-tim/schedule/${token}`);
+  if (!req) redirect(page);
   const slot = String(formData.get("slot") ?? "");
-  if (!slot || Number.isNaN(Date.parse(slot)) || Date.parse(slot) < Date.now()) redirect(`/work-with-tim/schedule/${token}`);
-  await bookMockSlot(req.id, slot);
-  redirect(`/work-with-tim/schedule/${token}`);
+  const phone = String(formData.get("phone") ?? "");
+  let error: string | undefined;
+  try {
+    await bookSlot(req.id, slot, phone);
+  } catch (e) {
+    if (!(e instanceof WorkflowError)) throw e;
+    error = e.message;
+  }
+  redirect(error ? `${page}?error=${encodeURIComponent(error)}` : page);
+}
+
+export async function cancelSlotAction(token: string) {
+  if (config.scheduling.driver !== "builtin") throw new Error("Not available");
+  const page = `/work-with-tim/schedule/${token}`;
+  const req = await resolveScheduleToken(token);
+  if (!req) redirect(page);
+  let error: string | undefined;
+  try {
+    await cancelSlot(req.id);
+  } catch (e) {
+    if (!(e instanceof WorkflowError)) throw e;
+    error = e.message;
+  }
+  redirect(error ? `${page}?error=${encodeURIComponent(error)}` : `${page}?cancelled=1`);
 }
 
 export type ActionState = { error?: string } | undefined;

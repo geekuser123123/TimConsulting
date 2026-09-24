@@ -127,9 +127,9 @@ export const config = {
 
   scheduling: {
     get driver() {
-      const d = env("SCHEDULING_DRIVER", devDefault("mock")) as "mock" | "calendly";
-      if (d === "mock" && process.env.NODE_ENV === "production" && !previewMode()) throw new Error("SCHEDULING_DRIVER=mock is not allowed in production");
-      return d;
+      // "mock" was the old name for the built-in calendar and is kept as an alias.
+      const d = env("SCHEDULING_DRIVER", "builtin");
+      return d === "calendly" ? "calendly" : "builtin";
     },
     get calendlyToken() {
       return env("CALENDLY_API_TOKEN");
@@ -143,6 +143,40 @@ export const config = {
     },
     get callDurationMinutes() {
       return envInt("DISCOVERY_CALL_MINUTES", 15);
+    },
+    /** Built-in calendar (SCHEDULING_DRIVER=builtin): Tim's weekly availability. */
+    get timeZone() {
+      return env("SCHEDULE_TIME_ZONE", "America/Chicago");
+    },
+    /** Days Tim takes calls, e.g. "mon,tue,thu". */
+    get days() {
+      return env("SCHEDULE_DAYS", "mon,tue,thu")
+        .split(",")
+        .map((d) => d.trim().slice(0, 3).toLowerCase())
+        .filter(Boolean);
+    },
+    /** Daily window in Tim's time zone, "HH:MM-HH:MM"; the last call must end by the closing time. */
+    get hours() {
+      const [start = "09:30", end = "14:45"] = env("SCHEDULE_HOURS", "09:30-14:45").split("-").map((s) => s.trim());
+      return { start, end };
+    },
+    /** Minutes between call start times (call length + gap). */
+    get slotIntervalMinutes() {
+      return envInt("SCHEDULE_SLOT_INTERVAL_MINUTES", 30);
+    },
+    /** Earliest bookable time, and the cut-off for client reschedules/cancellations. */
+    get minNoticeHours() {
+      return envInt("SCHEDULE_MIN_NOTICE_HOURS", 24);
+    },
+    get daysAhead() {
+      return envInt("SCHEDULE_DAYS_AHEAD", 21);
+    },
+    /** Dates Tim is unavailable (holidays, travel), "YYYY-MM-DD,YYYY-MM-DD". */
+    get blockedDates() {
+      return (process.env.SCHEDULE_BLOCKED_DATES ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     },
   },
 

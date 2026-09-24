@@ -16,3 +16,10 @@ export function toE164(phone: string): string | null {
   if (phone.trim().startsWith("+") && digits.length >= 8) return `+${digits}`;
   return null;
 }
+
+/** "(555) 123-4567" for US numbers; otherwise the number as given. */
+export function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const ten = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  return ten.length === 10 ? `(${ten.slice(0, 3)}) ${ten.slice(3, 6)}-${ten.slice(6)}` : phone;
+}

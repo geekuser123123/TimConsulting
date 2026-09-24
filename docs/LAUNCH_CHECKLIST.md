@@ -15,7 +15,7 @@
 
 - [ ] Tape apps built with `npm run tape:setup`; `npm run tape:smoke` passes
 - [ ] Tape webhook verified (`npm run tape:webhook`); accept/decline from inside Tape tested
-- [ ] Calendly secret event type, token and webhook configured; test booking plus cancellation
+- [ ] Built-in calendar hours/days/blocked dates confirmed with Tim; test booking, reschedule and cancellation (invites arrive)
 - [ ] Zoom (or other) recording webhook configured; test transcript attaches to the right request
 - [ ] Stripe live keys and webhook; one real low-value test payment made and refunded
 - [ ] Email domain verified (SPF/DKIM) and Twilio number registered
@@ -36,7 +36,7 @@ All 20 are automated in `tests/acceptance.test.ts` and run with `npm test`. Re-r
 | 4 | Tim can accept in one action | dashboard button or Tape field |
 | 5 | Tim can decline in one action | dashboard button or Tape field |
 | 6 | Accepted clients automatically receive the correct scheduling link | email + SMS with private token link |
-| 7 | Booking updates Tape automatically | Calendly webhook |
+| 7 | Booking updates Tape automatically | built-in calendar |
 | 8 | Recording consent is captured | required choice + acknowledgement; non-consent routed to staff |
 | 9 | Recording/transcript attaches to the correct request | event ID / meeting ID matching |
 | 10 | Staff can draft scope without Tim recreating the conversation | transcript + AI draft diagnosis on the record |

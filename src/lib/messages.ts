@@ -3,6 +3,8 @@
  * launch — keep all copy here so it can be reviewed in one place.
  */
 
+import { formatPhone } from "./normalize";
+
 export const SIGNATURE = "Tim Berry Consulting";
 
 export const copy = {
@@ -41,18 +43,31 @@ export const copy = {
   callPurpose: (minutes: number) =>
     `This is a ${minutes}-minute discovery call designed to understand your situation and determine what work, if any, is appropriate.`,
 
+  /** How the client joins: Tim phones them (tel:) or a meeting link. */
+  callDetails: (meetingUrl: string | undefined) => {
+    if (!meetingUrl) return "";
+    if (meetingUrl.startsWith("tel:")) return `Tim will call you at ${formatPhone(meetingUrl.slice(4))}. Please be available at that number.`;
+    return `Join here: ${meetingUrl}`;
+  },
+
   bookingConfirmed: {
     subject: "Your discovery call with Tim Berry is confirmed",
-    body: (firstName: string, when: string, meetingUrl: string | undefined, minutes: number) =>
-      `Hi ${firstName},\n\nYour discovery call with Tim Berry is confirmed for ${when}.\n${meetingUrl ? `\nJoin here: ${meetingUrl}\n` : ""}\n${copy.callPurpose(minutes)}\n\nThe call will be recorded and transcribed, as you consented to in your request.\n\n${SIGNATURE}`,
+    body: (firstName: string, when: string, meetingUrl: string | undefined, minutes: number, manageLink?: string) =>
+      `Hi ${firstName},\n\nYour discovery call with Tim Berry is confirmed for ${when}.\n${meetingUrl ? `\n${copy.callDetails(meetingUrl)}\n` : ""}\n${copy.callPurpose(minutes)}\n\nThe call will be recorded and transcribed, as you consented to in your request.${manageLink ? `\n\nNeed a different time? You can reschedule or cancel here: ${manageLink}` : ""}\n\n${SIGNATURE}`,
+  },
+
+  bookingCancelled: {
+    subject: "Your discovery call with Tim Berry was cancelled",
+    body: (firstName: string, link: string) =>
+      `Hi ${firstName},\n\nYour discovery call has been cancelled. If you'd like to talk with Tim, you can choose a new time using your private link:\n\n${link}\n\n${SIGNATURE}`,
   },
 
   reminder: {
     subject: (label: string) => `Reminder: your discovery call with Tim Berry ${label}`,
     body: (firstName: string, when: string, meetingUrl: string | undefined, minutes: number) =>
-      `Hi ${firstName},\n\nThis is a reminder of your discovery call with Tim Berry at ${when}.\n${meetingUrl ? `\nJoin here: ${meetingUrl}\n` : ""}\n${copy.callPurpose(minutes)}\n\n${SIGNATURE}`,
+      `Hi ${firstName},\n\nThis is a reminder of your discovery call with Tim Berry at ${when}.\n${meetingUrl ? `\n${copy.callDetails(meetingUrl)}\n` : ""}\n${copy.callPurpose(minutes)}\n\n${SIGNATURE}`,
     sms: (when: string, meetingUrl: string | undefined) =>
-      `Reminder: discovery call with Tim Berry at ${when}.${meetingUrl ? ` Join: ${meetingUrl}` : ""}`,
+      `Reminder: discovery call with Tim Berry at ${when}.${meetingUrl?.startsWith("tel:") ? " Tim will call you." : meetingUrl ? ` Join: ${meetingUrl}` : ""}`,
   },
 
   proposalSent: {

@@ -6,7 +6,8 @@
  * Calendly, so Tim's calendar and other event types are never exposed. The link is only reachable
  * through our token-gated page, which re-checks the request status on every visit.
  *
- * Mock (development): our own page renders a simple slot picker so the flow can be run locally.
+ * Built-in (SCHEDULING_DRIVER=builtin): the site's own calendar. Our token-gated page offers Tim's
+ * open times (see availability.ts and workflow/booking.ts); Tim phones the client.
  */
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -24,7 +25,7 @@ export interface BookingEvent {
 }
 
 export async function createPrivateSchedulingLink(req: ConsultingRequest): Promise<string> {
-  if (config.scheduling.driver === "mock") return `mock://schedule/${req.id}`;
+  if (config.scheduling.driver === "builtin") return `builtin://schedule/${req.id}`;
   const res = await fetch("https://api.calendly.com/scheduling_links", {
     method: "POST",
     headers: { Authorization: `Bearer ${config.scheduling.calendlyToken}`, "Content-Type": "application/json" },
@@ -37,7 +38,7 @@ export async function createPrivateSchedulingLink(req: ConsultingRequest): Promi
 
 /** Final provider URL for the client, pre-filled and tagged with the request ID for matching. */
 export function providerBookingUrl(req: ConsultingRequest): string | null {
-  if (!req.schedulingProviderUrl || req.schedulingProviderUrl.startsWith("mock://")) return null;
+  if (!req.schedulingProviderUrl?.startsWith("http")) return null;
   const url = new URL(req.schedulingProviderUrl);
   url.searchParams.set("name", req.clientName);
   url.searchParams.set("email", req.email);
@@ -86,7 +87,7 @@ export function parseCalendlyEvent(body: CalendlyPayload): BookingEvent | null {
 
 /** Cancel a booking that was not made through an approved request (enforces "no scheduling before Tim accepts"). */
 export async function cancelUnapprovedBooking(eventUri: string, reason: string): Promise<void> {
-  if (config.scheduling.driver === "mock") return;
+  if (config.scheduling.driver === "builtin") return;
   const uuid = eventUri.split("/").pop();
   const res = await fetch(`https://api.calendly.com/scheduled_events/${uuid}/cancellation`, {
     method: "POST",
@@ -96,22 +97,3 @@ export async function cancelUnapprovedBooking(eventUri: string, reason: string):
   if (!res.ok) throw new Error(`Calendly cancellation failed (${res.status})`);
 }
 
-/** Dev-only slot generator for the mock scheduler: next 5 business days, 10:00–15:00 Central, every 30 min. */
-export function mockSlots(now = new Date()): string[] {
-  const slots: string[] = [];
-  const d = new Date(now);
-  d.setUTCDate(d.getUTCDate() + 1);
-  while (slots.length < 30) {
-    const day = d.getUTCDay();
-    if (day !== 0 && day !== 6) {
-      for (const hourUtc of [15, 16, 17, 18, 19]) {
-        for (const min of [0, 30]) {
-          const s = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hourUtc, min));
-          slots.push(s.toISOString());
-        }
-      }
-    }
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return slots.slice(0, 30);
-}

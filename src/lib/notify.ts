@@ -14,6 +14,14 @@ export interface SentMessage {
   subject?: string;
   body: string;
   at: string;
+  attachments?: string[];
+}
+
+export interface EmailAttachment {
+  filename: string;
+  /** Plain-text content (e.g. an .ics invite). */
+  content: string;
+  contentType: string;
 }
 
 const g = globalThis as unknown as { __outbox?: SentMessage[] };
@@ -35,10 +43,11 @@ function textToHtml(text: string) {
     .join("")}</div>`;
 }
 
-export async function sendEmail(to: string | string[], subject: string, body: string): Promise<void> {
+export async function sendEmail(to: string | string[], subject: string, body: string, attachments: EmailAttachment[] = []): Promise<void> {
   const recipients = Array.isArray(to) ? to : [to];
   const at = new Date().toISOString();
-  for (const r of recipients) outbox().push({ channel: "email", to: r, subject, body, at });
+  const names = attachments.length ? attachments.map((a) => a.filename) : undefined;
+  for (const r of recipients) outbox().push({ channel: "email", to: r, subject, body, at, attachments: names });
 
   if (config.email.driver === "console") {
     if (process.env.NODE_ENV !== "test" && !process.env.VITEST) console.info(`[email] to=${recipients.join(",")} subject="${subject}"\n${body}\n`);
@@ -54,6 +63,9 @@ export async function sendEmail(to: string | string[], subject: string, body: st
       subject,
       text: body,
       html: textToHtml(body),
+      ...(attachments.length
+        ? { attachments: attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, "utf8").toString("base64"), content_type: a.contentType })) }
+        : {}),
     }),
   });
   // Resend's error message (e.g. "domain is not verified") helps diagnose setup; it never echoes the email body.

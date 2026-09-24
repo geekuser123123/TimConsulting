@@ -2,7 +2,31 @@
 
 All credentials are server-side environment variables (see `.env.example`). Nothing secret is sent to the browser.
 
-## Scheduling: Calendly
+## Scheduling: built-in calendar (default)
+
+`SCHEDULING_DRIVER=builtin`. No outside scheduling service. When Tim accepts, the client's private
+link shows Tim's open times; they pick one and confirm the phone number **Tim will call**.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `SCHEDULE_TIME_ZONE` | `America/Chicago` | Tim's time zone (daylight saving handled) |
+| `SCHEDULE_DAYS` | `mon,tue,thu` | days Tim takes calls |
+| `SCHEDULE_HOURS` | `09:30-14:45` | daily window; the last call must *end* by the closing time |
+| `DISCOVERY_CALL_MINUTES` | `15` | call length |
+| `SCHEDULE_SLOT_INTERVAL_MINUTES` | `30` | minutes between start times (call + gap) → 9:30, 10:00 … 2:30 |
+| `SCHEDULE_MIN_NOTICE_HOURS` | `24` | earliest bookable time, and the latest a client can reschedule/cancel online |
+| `SCHEDULE_DAYS_AHEAD` | `21` | how far ahead clients can book |
+| `SCHEDULE_BLOCKED_DATES` | — | days off, e.g. `2026-11-26,2026-12-24` |
+
+- A time is removed as soon as any client books it, so two clients can't book the same call.
+- The confirmation email (client) and booking alert (Tim, `TIM_NOTIFY_EMAIL`) carry a calendar
+  invite (`.ics`). Opening it puts the call on the calendar; a reschedule moves it and a
+  cancellation removes it.
+- Clients can move or cancel their call from the same private link until the notice cut-off.
+- Tim's dashboard (`/admin/tim`) lists **Upcoming Calls** with tap-to-call phone numbers.
+- The system doesn't see Tim's other appointments. Block days off with `SCHEDULE_BLOCKED_DATES`.
+
+## Scheduling: Calendly (optional alternative)
 
 1. Create **one** event type named **"Tim Berry Discovery Call - 15 Minutes"** and mark it **secret** so it isn't listed on Tim's public page. Set its location to Zoom so every booking gets a unique join URL.
 2. Put its URI in `CALENDLY_DISCOVERY_EVENT_TYPE_URI` and a personal access token in `CALENDLY_API_TOKEN`.
