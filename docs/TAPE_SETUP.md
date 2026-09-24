@@ -1,33 +1,62 @@
 # Tape Setup
 
-Tape is the CRM of record. This system only uses Tape's **supported record API and webhooks**, never the beta Automation API. The workflows below are ordinary Tape workflows.
+Tape is the CRM of record. This system uses only Tape's **supported REST API** (apps, records, webhooks), never the beta Automation API. Setup takes about five minutes: create a token, run one command, check it, and later register the webhook.
 
-## 1. Apps
+## 1. Create an access token
 
-| App | Purpose |
-|---|---|
-| **Contacts** (existing) | One record per person. Matched by email, then phone, so returning clients are never duplicated. |
-| **Tim Consulting Requests** (new) | One record per consulting matter/request. A returning client with a new issue gets a new request linked to the same contact. |
-| **Matters** (existing or new) | Created only when every engagement condition is met; linked back to the request. |
-| **Matter Tasks** (optional) | Staff and attorney tasks created when a matter opens. |
+In Tape: click your **avatar → Preferences → Developer → Personal access tokens → Create token**.
 
-Create every field in **[TAPE_FIELDS.md](TAPE_FIELDS.md)** and set its **External ID** exactly as listed. The integration reads and writes by external ID, so labels can be renamed freely. `Status` is the single main pipeline field.
+- **Capabilities:** `apps:read`, `apps:edit`, `records:read`, `records:edit`, `webhooks:manage`, `workspaces:read`.
+- **Content:** the workspace the consulting apps will live in (or all content).
+- Copy the token (it starts with `tape_pat_`). Tape shows it only once.
 
-Then run:
+Ideally create it while signed in as a dedicated integration user, so the system's edits show under that name in Tape's history.
 
-```bash
-TAPE_API_KEY=... TAPE_CONTACTS_APP_ID=... TAPE_REQUESTS_APP_ID=... TAPE_MATTERS_APP_ID=... npm run tape:check
+Put it in `.env.local` on your computer (never in chat, email or the repo):
+
+```
+TAPE_API_KEY=tape_pat_...
 ```
 
-This read-only check reports any missing field or category option.
+## 2. Create the apps: `npm run tape:setup`
 
-## 2. Access and credentials
+From the project folder (PowerShell is fine):
 
-- Create a dedicated **integration user** and a **scoped personal access token** limited to these apps. Put it in `TAPE_API_KEY` on the server only.
+```powershell
+npm run tape:setup
+```
+
+This builds everything in Tape for you:
+
+| App | What setup does |
+|---|---|
+| **Contacts** | Reuses an existing app named "Contacts" and adds only missing fields (First Name, Last Name, Email, Phone, State, Current Client). Otherwise creates it. |
+| **Tim Consulting Requests** | Creates the app with every field in [TAPE_FIELDS.md](TAPE_FIELDS.md), including the 13 pipeline statuses. |
+| **Matters** | Created, linked to Contacts and Requests. |
+| **Matter Tasks** | Created, linked to Matters and Requests. Skip it with `npm run tape:setup -- --no-tasks`. |
+
+If you have more than one workspace, it lists them. Pick one with `npm run tape:setup -- --workspace "Workspace name"`. To use apps you already have, put their IDs in `.env.local` (`TAPE_CONTACTS_APP_ID=…` etc.) before running.
+
+Setup saves the app IDs into `.env.local` and prints them. **Add the same values in Cloudflare** (Workers & Pages → tim-consulting → Settings → Variables and Secrets): `TAPE_API_KEY` (as a secret), `TAPE_CONTACTS_APP_ID`, `TAPE_REQUESTS_APP_ID`, `TAPE_MATTERS_APP_ID`, `TAPE_TASKS_APP_ID`, and `TAPE_WEBHOOK_SECRET` (any long random string).
+
+It is safe to run again at any time. It never deletes fields or data; it only adds what's missing.
+
+**Field names matter; external IDs don't.** The system finds each field by its label (for example "Tim Decision"). You can rearrange fields, hide them, or add your own. Don't rename the listed labels unless you rename them in `src/lib/store/tape-schema.ts` too. If a label is ever renamed by mistake, `npm run tape:check` names it.
+
+## 3. Check it: `npm run tape:check -- --smoke`
+
+```powershell
+npm run tape:check -- --smoke
+```
+
+This confirms every field and dropdown option is present. With `--smoke` it also creates one test contact and one test request, reads them back, filters, updates, and then deletes them. The expected result is `✅ Write, read, filter and update all work.`
+
+## 4. Access
+
 - Limit who can see the Requests app. The transcript, recording links, diagnosis and audit trail are confidential. Fields marked "Visible to Tim: No" in TAPE_FIELDS.md can be hidden from Tim's views.
 - Don't add fields for SSNs, passwords or full account numbers. The website form rejects them.
 
-## 3. Tim's two views (the only things Tim needs)
+## 5. Tim's two views (the only things Tim needs)
 
 **View: Requests Waiting for Tim**. Filter: `Status = Pending Tim Review`. Columns: Client Name · Client Goal · Client Question · Timing / Deadline · Current Client · Account Type · Transaction Summary · **Tim Decision** · Decline Reason.
 
@@ -39,14 +68,22 @@ Tim sets **Tim Approval = Approved** or **Needs Changes** (the note is optional)
 
 The same two dashboards also exist at `/admin/tim` with one-click buttons. Tim can use either one.
 
-## 4. Workflows / webhooks
+## 6. Webhook: Tape → site
 
-Create **one** Tape workflow on the Tim Consulting Requests app:
+When Tim changes **Tim Decision** or **Tim Approval** in Tape, Tape tells the site right away through a webhook. Register it once the site is live on Cloudflare and has the Tape variables above:
 
-- **Trigger:** record updated (optionally only when `Tim Decision`, `Tim Approval`, `Scope Status` or `Initial Documents Received` change).
-- **Action:** send webhook (HTTP POST) to
-  `https://<your-site>/api/webhooks/tape?secret=<TAPE_WEBHOOK_SECRET>`
-  with the record ID in the body (for example `{"record_id": "{{record_id}}"}`) or as `&record_id=` on the URL.
+```powershell
+# in .env.local: SITE_URL=https://<your live address>  and  TAPE_WEBHOOK_SECRET=<same value as in Cloudflare>
+npm run tape:setup -- --webhook
+```
+
+Setup creates a `record.update` webhook on the Requests app pointing at `https://<site>/api/webhooks/tape?secret=…` and asks Tape to verify it. Tape calls the site with a code, the site confirms it automatically, and setup reports `✅ Webhook verified and active.`
+
+If it says the webhook is not active, check that:
+- the site is deployed with `TAPE_API_KEY` and `TAPE_WEBHOOK_SECRET` set, and
+- Cloudflare Access isn't blocking `/api/*` (see DEPLOY_CLOUDFLARE.md → "Let webhooks through").
+
+Then run it again. You don't need a Tape workflow or n8n for this.
 
 The server re-reads the record and acts on its **current state**, so duplicate or out-of-order webhooks are harmless:
 
@@ -63,7 +100,7 @@ As a safety net, the 10-minute cron sweep also reconciles any request whose webh
 
 Optional native Tape notifications (for example "notify Tim when a record enters Pending Tim Review") are fine to add. The server already emails Tim and staff at those points.
 
-## 5. Automation map (spec §24)
+## 7. Automation map (spec §24)
 
 | Trigger | Handled by |
 |---|---|
@@ -80,12 +117,10 @@ Optional native Tape notifications (for example "notify Tim when a record enters
 | Stripe confirms payment → update Tape | Stripe webhook → `recordPayment` |
 | All engagement conditions satisfied → open matter + tasks | `tryOpenMatter` (runs after every relevant event) |
 
-## 6. Verifying the API adapter
+## 8. How the connection works (for developers)
 
-Tape's developer docs could not be reached from the build environment. The adapter in `src/lib/store/tape.ts` is written against Tape's documented record endpoints (`POST /v1/record/app/{app_id}`, `GET`/`PUT /v1/record/{record_id}`, `GET /v1/app/{app_id}`), but three details **must be confirmed against the live API before launch**:
-
-1. **Auth header**: `TAPE_AUTH_SCHEME=bearer` or `basic`.
-2. **Record filtering**: `TapeClient.filterRecords` assumes `POST /v1/record/app/{app_id}/filter` with `{filters: [{field_id, type, match_type: "equal", values}]}` and a cursor. If Tape's filter shape differs, only that one method changes.
-3. **Value formats**: `encodeValue`/`decodeValue` (email/phone arrays, category by option text, dates as `{start: "YYYY-MM-DD HH:mm:ss"}` UTC, relations as record-ID arrays).
-
-To test: create one request through the site with `CRM_DRIVER=tape`, check the record in Tape, then accept it from `/admin/tim` and confirm the fields update.
+- `src/lib/store/tape-core.ts` is the REST client (Bearer token, retries on 429), the field matcher and the value formats. Category values are written as option IDs; dates are written as UTC `YYYY-MM-DD HH:mm:ss` and read from `start_utc`; emails and phones are written as `[{type, email|phone}]`; relations as record IDs.
+- `src/lib/store/tape.ts` (`TapeStore`) caches each app's field list for 5 minutes. If a field or option seems to be missing, it re-reads the app once before failing.
+- Searches use `POST /v1/record/filter/app/{id}`. Contacts are matched by email (`fully_includes`), then phone (`ends_with` plus an exact digit comparison).
+- Every write passes `hook=false`, so the system's own updates never fire its own webhook.
+- `tests/fake-tape.ts` is a strict stand-in for Tape's API that the test suite runs the whole workflow against.

@@ -113,20 +113,23 @@ export async function saveDiagnosisAction(id: string, _prev: FormState, fd: Form
   return run(async () => {
     const req = await getStore().getRequest(id);
     if (!req) throw new WorkflowError("Not found", "not_found");
-    await getStore().updateRequest(id, {
-      diagClientGoal: str(fd, "diagClientGoal"),
-      diagCurrentSituation: str(fd, "diagCurrentSituation"),
-      diagKeyFacts: str(fd, "diagKeyFacts"),
-      diagPrimaryIssue: str(fd, "diagPrimaryIssue"),
-      diagSecondaryIssues: str(fd, "diagSecondaryIssues"),
-      diagFactsStillNeeded: str(fd, "diagFactsStillNeeded"),
-      diagAttorneyWorkRequired: (str(fd, "diagAttorneyWorkRequired") || undefined) as "Yes" | "No" | "Unclear" | undefined,
-      diagRecommendedNextStep: str(fd, "diagRecommendedNextStep"),
-      diagRecommendedDeliverable: str(fd, "diagRecommendedDeliverable"),
-      diagDocumentsNeeded: str(fd, "diagDocumentsNeeded"),
-      internalComments: str(fd, "internalComments"),
-    });
-    await getStore().appendAudit(id, { at: new Date().toISOString(), actor: actorFor(role), action: "Diagnosis edited" });
+    await getStore().updateRequest(
+      id,
+      {
+        diagClientGoal: str(fd, "diagClientGoal"),
+        diagCurrentSituation: str(fd, "diagCurrentSituation"),
+        diagKeyFacts: str(fd, "diagKeyFacts"),
+        diagPrimaryIssue: str(fd, "diagPrimaryIssue"),
+        diagSecondaryIssues: str(fd, "diagSecondaryIssues"),
+        diagFactsStillNeeded: str(fd, "diagFactsStillNeeded"),
+        diagAttorneyWorkRequired: (str(fd, "diagAttorneyWorkRequired") || undefined) as "Yes" | "No" | "Unclear" | undefined,
+        diagRecommendedNextStep: str(fd, "diagRecommendedNextStep"),
+        diagRecommendedDeliverable: str(fd, "diagRecommendedDeliverable"),
+        diagDocumentsNeeded: str(fd, "diagDocumentsNeeded"),
+        internalComments: str(fd, "internalComments"),
+      },
+      { at: new Date().toISOString(), actor: actorFor(role), action: "Diagnosis edited" },
+    );
   }, "Diagnosis saved.");
 }
 

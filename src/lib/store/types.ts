@@ -30,7 +30,8 @@ export interface CrmStore {
 
   createRequest(data: NewConsultingRequest): Promise<ConsultingRequest>;
   getRequest(id: string): Promise<ConsultingRequest | null>;
-  updateRequest(id: string, patch: RequestPatch): Promise<ConsultingRequest>;
+  /** Apply a patch; when `audit` is given it is appended to the audit trail in the same write. */
+  updateRequest(id: string, patch: RequestPatch, audit?: AuditEntry): Promise<ConsultingRequest>;
   listRequests(statuses?: PipelineStatus[]): Promise<ConsultingRequest[]>;
   findRequestBy(field: RequestLookupField, value: string): Promise<ConsultingRequest | null>;
   appendAudit(id: string, entry: AuditEntry): Promise<void>;

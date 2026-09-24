@@ -67,9 +67,6 @@ export const config = {
     get apiKey() {
       return env("TAPE_API_KEY");
     },
-    get authScheme() {
-      return env("TAPE_AUTH_SCHEME", "bearer") as "bearer" | "basic";
-    },
     get contactsAppId() {
       return env("TAPE_CONTACTS_APP_ID");
     },

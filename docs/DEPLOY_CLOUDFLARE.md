@@ -31,7 +31,7 @@ Add these as **Secret** (encrypted) unless noted:
 | `TIM_DASHBOARD_PASSWORD`, `STAFF_DASHBOARD_PASSWORD` | strong passwords, at least 12 characters (shorter ones are refused on the hosted site) |
 | `TAPE_API_KEY` | from Tape |
 | `TAPE_CONTACTS_APP_ID`, `TAPE_REQUESTS_APP_ID`, `TAPE_MATTERS_APP_ID` (text) | Tape app IDs |
-| `TAPE_WEBHOOK_SECRET` | random string; also used in the Tape workflow URL |
+| `TAPE_WEBHOOK_SECRET` | random string; `npm run tape:setup -- --webhook` puts it in the Tape webhook URL |
 | `RESEND_API_KEY` | from resend.com |
 | `EMAIL_FROM` (text) | `onboarding@resend.dev` until your domain is verified in Resend |
 | `TIM_NOTIFY_EMAIL`, `STAFF_NOTIFY_EMAILS` (text) | real addresses |
@@ -46,6 +46,17 @@ The in-memory test CRM does not work on Workers (no shared memory between reques
 ## 3. Keep the preview private
 Cloudflare **Zero Trust → Access → Applications → Add an application (Self-hosted)** for the
 Worker's hostname, allowing only your team's email addresses (free for up to 50 users).
+
+### Let webhooks through
+Access blocks everything by default, including the calls Tape, Stripe, Calendly and Zoom make to
+the site. Those endpoints check their own secrets or signatures, so they can safely skip Access. In
+the Access application, add a second **public hostname** for the same domain with path `api/webhooks`
+(Cloudflare matches everything under it) and give it a policy with **Action: Bypass** and
+**Include: Everyone**. Do the same for `api/cron` if you ever call the sweep from outside Cloudflare
+(the built-in Cron Trigger doesn't need it).
+
+Check it: opening `https://<site>/api/webhooks/tape` in a private browser window should show
+`{"error":"Unauthorized"}` from the app, not the Cloudflare Access login page.
 
 ## 4. Domain
 Because rothacademy.com is on Cloudflare, give the app its own subdomain:

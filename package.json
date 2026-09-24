@@ -10,6 +10,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "tape:setup": "tsx scripts/tape-setup.ts",
     "tape:check": "tsx scripts/tape-check.ts",
     "tape:doc": "tsx scripts/tape-doc.ts > docs/TAPE_FIELDS.md",
     "cf:build": "opennextjs-cloudflare build",
