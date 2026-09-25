@@ -45,7 +45,7 @@ export default async function TimDashboards() {
                       <strong>{formatWhen(r.scheduledAt)}</strong>
                     </td>
                     <td>
-                      <a href={`/admin/staff/${r.id}`}>{r.clientName}</a>
+                      <a href={`/admin/tim/${r.id}`}>{r.clientName}</a>
                       {!r.recordingConsent && <div><span className="badge warn">Do not record</span></div>}
                     </td>
                     <td>{tel ? <a href={`tel:${tel}`}>{formatPhone(tel)}</a> : r.meetingUrl ? <a href={r.meetingUrl}>Join link</a> : "—"}</td>
@@ -79,7 +79,8 @@ export default async function TimDashboards() {
               {requests.map((r) => (
                 <tr key={r.id}>
                   <td>
-                    <strong>{r.clientName}</strong>
+                    <a href={`/admin/tim/${r.id}`}><strong>{r.clientName}</strong></a>
+                    <div className="small"><a href={`/admin/tim/${r.id}`}>View full request →</a></div>
                     {r.accountType && <div className="muted small">{r.accountType}</div>}
                     {!r.recordingConsent && <div><span className="badge warn">No recording consent</span></div>}
                   </td>
@@ -132,7 +133,8 @@ export default async function TimDashboards() {
               {scopes.map((r) => (
                 <tr key={r.id}>
                   <td>
-                    <strong>{r.clientName}</strong>
+                    <a href={`/admin/tim/${r.id}`}><strong>{r.clientName}</strong></a>
+                    <div className="small"><a href={`/admin/tim/${r.id}`}>View full scope →</a></div>
                     {r.scopeExclusions && <div className="muted small clamp">Excludes: {r.scopeExclusions}</div>}
                   </td>
                   <td><div className="clamp">{r.diagPrimaryIssue || r.scopeSituation}</div></td>

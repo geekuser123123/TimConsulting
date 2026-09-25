@@ -7,25 +7,11 @@ import { formatUsd, formatWhen } from "@/lib/workflow/core";
 import { engagementConditions } from "@/lib/workflow/matter";
 import { nextAction } from "@/lib/workflow/next-action";
 import { staffSimpleAction } from "../../actions";
+import { KV } from "../../KV";
 import { DiagnosisForm, ScopeForm, TranscriptForm } from "./Forms";
 
 export const metadata: Metadata = { title: "Consulting Request" };
 export const dynamic = "force-dynamic";
-
-function KV({ rows }: { rows: [string, React.ReactNode][] }) {
-  return (
-    <dl className="kv">
-      {rows
-        .filter(([, v]) => v !== undefined && v !== null && v !== "")
-        .map(([k, v]) => (
-          <div key={k} style={{ display: "contents" }}>
-            <dt>{k}</dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
-    </dl>
-  );
-}
 
 const yn = (b: boolean) => (b ? "Yes" : "No");
 const d = (iso?: string) => (iso ? formatWhen(iso) : undefined);

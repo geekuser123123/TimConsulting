@@ -52,28 +52,37 @@ async function run(fn: () => Promise<unknown>, ok: string): Promise<FormState> {
 
 // ---- Tim's one-click actions -------------------------------------------------------------------
 
-export async function timAcceptAction(id: string) {
+/** Deciding from a request's detail page returns Tim to his dashboard. */
+function backToDashboard(formData?: FormData) {
+  if (formData?.get("return") === "dashboard") redirect("/admin/tim");
+}
+
+export async function timAcceptAction(id: string, formData?: FormData) {
   await requireRole("tim");
   await acceptRequest(id, "tim");
   revalidatePath("/admin/tim");
+  backToDashboard(formData);
 }
 
 export async function timDeclineAction(id: string, formData: FormData) {
   await requireRole("tim");
   await declineRequest(id, String(formData.get("reason") ?? "") || undefined, "tim");
   revalidatePath("/admin/tim");
+  backToDashboard(formData);
 }
 
-export async function timApproveScopeAction(id: string) {
+export async function timApproveScopeAction(id: string, formData?: FormData) {
   await requireRole("tim");
   await approveScope(id, "tim");
   revalidatePath("/admin/tim");
+  backToDashboard(formData);
 }
 
 export async function timNeedsChangesAction(id: string, formData: FormData) {
   await requireRole("tim");
   await requestScopeChanges(id, String(formData.get("note") ?? "") || undefined, "tim");
   revalidatePath("/admin/tim");
+  backToDashboard(formData);
 }
 
 // ---- Staff console -----------------------------------------------------------------------------
