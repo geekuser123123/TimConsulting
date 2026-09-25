@@ -86,7 +86,6 @@ export default async function ProposalPage({ params, searchParams }: { params: P
       {needsSignature && (
         <div className="card" id="engagement">
           <h2 style={{ marginTop: 0 }}>{engagementAgreement.title}</h2>
-          {engagementAgreement.draft && <div className="notice small">Draft language — final engagement terms to be approved by Tim before launch.</div>}
           {engagementAgreement.paragraphs.map((p) => (
             <p key={p}>{p}</p>
           ))}

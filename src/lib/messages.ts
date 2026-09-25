@@ -1,6 +1,6 @@
 /**
- * Client-facing and internal message copy. Final legal wording must be approved by Tim before
- * launch — keep all copy here so it can be reviewed in one place.
+ * Client-facing and internal message copy, approved by Tim. Keep all copy here so any future
+ * wording change can be reviewed (and re-approved) in one place.
  */
 
 import { formatPhone } from "./normalize";
@@ -112,13 +112,11 @@ export const consentText = {
 };
 
 /**
- * PLACEHOLDER engagement agreement. The exact engagement language and signature requirements
- * will be provided/approved by Tim — replace this before launch (or set
- * ENGAGEMENT_AGREEMENT_REQUIRED=false to skip this step).
+ * Engagement agreement shown on the proposal page and signed by typing a name (approved by Tim).
+ * Set ENGAGEMENT_AGREEMENT_REQUIRED=false to skip this step.
  */
 export const engagementAgreement = {
   title: "Engagement Agreement",
-  draft: true,
   paragraphs: [
     "This agreement confirms that you are engaging Tim Berry and the firm to perform the Proposed Work described above, for the Professional Fee stated above.",
     "The engagement is limited to the Proposed Work and Deliverables described in this proposal. Anything listed under “Not Included,” and any additional services, would require a separate engagement.",

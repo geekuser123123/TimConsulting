@@ -2,11 +2,11 @@
 
 ## Needs Tim's approval (legal wording and policy)
 
-- [ ] Recording/transcription consent wording: `consentText.recording` in `src/lib/messages.ts`
-- [ ] "No attorney-client relationship" acknowledgement: `consentText.noRelationship`
-- [ ] Verbal confirmation script at the start of each call: `consentText.verbalScript` (shown to staff on the request page)
-- [ ] Engagement agreement text and signature requirements: `engagementAgreement` in `src/lib/messages.ts` (currently marked DRAFT on the page). Set `ENGAGEMENT_AGREEMENT_REQUIRED=false` if no agreement is needed.
-- [ ] All client emails and texts in `src/lib/messages.ts` (decline message, scheduling, reminders, proposal, engagement active)
+- [x] Recording/transcription consent wording: `consentText` in `src/lib/messages.ts` (client's wording, approved)
+- [x] "No attorney-client relationship" acknowledgement: `consentText.noRelationship` (approved)
+- [x] Verbal confirmation script at the start of each call: `consentText.verbalScript` (approved)
+- [x] Engagement agreement text and signature requirements: `engagementAgreement` in `src/lib/messages.ts` (approved). Set `ENGAGEMENT_AGREEMENT_REQUIRED=false` if no agreement is needed.
+- [x] All client emails and texts in `src/lib/messages.ts` (approved). Any future wording change should be re-approved by Tim.
 - [ ] Retention periods for raw audio and transcripts (configured at the recording provider and in Tape)
 - [ ] AI summarization provider approved for confidential client information before setting `AI_SUMMARY_ENABLED=true`
 - [ ] Whether initial documents must be received before a matter opens (`INITIAL_DOCUMENTS_REQUIRED_DEFAULT`; staff can override per request)
