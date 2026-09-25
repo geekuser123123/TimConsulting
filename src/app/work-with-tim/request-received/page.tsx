@@ -10,7 +10,7 @@ export default async function RequestReceived({ searchParams }: { searchParams: 
       <PageHero eyebrow="Request received" title={<>Thank you. <em>Tim will review it.</em></>} />
       <div className="container">
         <div className="card" style={{ textAlign: "center" }}>
-          <div className="seal" aria-hidden="true" style={{ display: "grid", placeItems: "center", width: 61, height: 61, borderRadius: "50%", background: "rgba(198,164,102,.14)", color: "var(--accent)", fontSize: 30, margin: "0 auto 20px" }}>
+          <div className="seal" aria-hidden="true" style={{ display: "grid", placeItems: "center", width: 61, height: 61, borderRadius: "50%", background: "rgba(198,164,102,.14)", color: "#8a6d35", fontSize: 30, margin: "0 auto 20px" }}>
             ✓
           </div>
           <p className="lead">
