@@ -99,7 +99,11 @@ export function setPaymentGateway(gw: PaymentGateway | undefined) {
   g.__paymentGateway = gw;
 }
 
-export function verifyStripeEvent(rawBody: string, signature: string | null): Stripe.Event {
+// Web Crypto works on Cloudflare Workers and Node alike. The synchronous constructEvent does not
+// work on Workers (Stripe's worker build can only verify signatures asynchronously).
+const webCrypto = Stripe.createSubtleCryptoProvider();
+
+export async function verifyStripeEvent(rawBody: string, signature: string | null): Promise<Stripe.Event> {
   if (!signature) throw new Error("Missing Stripe-Signature header");
-  return stripe().webhooks.constructEvent(rawBody, signature, config.stripe.webhookSecret);
+  return stripe().webhooks.constructEventAsync(rawBody, signature, config.stripe.webhookSecret, undefined, webCrypto);
 }

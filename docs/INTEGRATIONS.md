@@ -74,6 +74,7 @@ Off by default (`AI_SUMMARY_ENABLED=false`). When enabled, `src/lib/summary.ts` 
 
 1. Set `STRIPE_SECRET_KEY`.
 2. Add a webhook endpoint at `https://<site>/api/webhooks/stripe` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then set `STRIPE_WEBHOOK_SECRET`.
+3. For testing, use a Stripe **sandbox** (keys start with `sk_test_`) and the test card `4242 4242 4242 4242` (any future date, any CVC). Once `STRIPE_SECRET_KEY` is set, the preview's fake checkout page is replaced by real Stripe Checkout, even with `PREVIEW_MODE=true`.
 
 Flow:
 
