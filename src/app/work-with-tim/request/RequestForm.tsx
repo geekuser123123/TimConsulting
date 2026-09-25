@@ -7,7 +7,12 @@ import { US_STATES } from "@/lib/us-states";
 type Errors = Record<string, string>;
 
 export interface ConsentCopy {
+  recordingTitle: string;
+  recordingWhy: string;
+  recordingPrivacy: string;
   recording: string;
+  noRecordingPrompt: string;
+  noRecordingOption: string;
   noRelationship: string;
   sensitiveWarning: string;
 }
@@ -301,17 +306,33 @@ export function RequestForm({ consent }: { consent: ConsentCopy }) {
         <div className="form-step" data-step="2" hidden={step !== 2}>
           <h4>One final check.</h4>
           <div className="form-disclaimer">{consent.sensitiveWarning}</div>
+          <div className="recording-note">
+            <h5>{consent.recordingTitle}</h5>
+            <p>{consent.recordingWhy}</p>
+            <p className="recording-privacy">{consent.recordingPrivacy}</p>
+          </div>
           <label className="checkline consent-line" hidden={alternative}>
             <input type="checkbox" id="recordingConsent" name="recordingConsent" required={!alternative} />
             <span>{consent.recording} *</span>
           </label>
           <div className="alt-consent">
-            <button type="button" aria-expanded={alternative} onClick={() => setAlternative((a) => !a)}>
-              {alternative ? "Use the recorded call process instead" : "I cannot consent to recording or transcription"}
-            </button>
-            <div className="alt-info" hidden={!alternative}>
-              Understood. Your call will not be recorded. If Tim accepts your request, a member of our team will contact you directly to arrange it.
-            </div>
+            {alternative ? (
+              <>
+                <div className="alt-info">
+                  Understood. Your request will be reviewed in writing, without a recorded call. If Tim accepts it, our team will contact you directly about next steps.
+                </div>
+                <button type="button" aria-expanded={alternative} onClick={() => setAlternative(false)}>
+                  I can consent to recording after all
+                </button>
+              </>
+            ) : (
+              <>
+                <em>{consent.noRecordingPrompt}</em>{" "}
+                <button type="button" aria-expanded={alternative} onClick={() => setAlternative(true)}>
+                  {consent.noRecordingOption}
+                </button>
+              </>
+            )}
           </div>
           <Err name="recordingConsent" errors={errors} />
           <label className="checkline">
