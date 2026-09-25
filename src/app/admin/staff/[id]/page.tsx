@@ -8,7 +8,7 @@ import { engagementConditions } from "@/lib/workflow/matter";
 import { nextAction } from "@/lib/workflow/next-action";
 import { staffSimpleAction } from "../../actions";
 import { KV } from "../../KV";
-import { DiagnosisForm, ScopeForm, TranscriptForm } from "./Forms";
+import { CloseMatterForm, DiagnosisForm, ScopeForm, TranscriptForm } from "./Forms";
 
 export const metadata: Metadata = { title: "Consulting Request" };
 export const dynamic = "force-dynamic";
@@ -193,6 +193,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
                 </form>
               )}
             </div>
+            {r.status === "Matter Active" && <CloseMatterForm req={r} />}
           </div>
 
           <div className="card">

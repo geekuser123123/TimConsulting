@@ -19,7 +19,8 @@ const GROUPS: Record<string, PipelineStatus[]> = {
 function badgeClass(status: PipelineStatus) {
   if (status.startsWith("Pending Tim")) return "badge warn";
   if (status === "Matter Active" || status.startsWith("Accepted")) return "badge ok";
-  if (status.includes("Declined") || status === "Closed") return "badge bad";
+  if (status === "Closed") return "badge ok"; // work finished
+  if (status.includes("Declined")) return "badge bad";
   return "badge";
 }
 

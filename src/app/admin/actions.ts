@@ -11,7 +11,7 @@ import { WorkflowError } from "@/lib/workflow/core";
 import { acceptRequest, declineRequest } from "@/lib/workflow/review";
 import { approveScope, requestScopeChanges, saveScopeDraft, startScope, submitScopeToTim } from "@/lib/workflow/scope";
 import { receiveTranscript, markCallCompleted } from "@/lib/workflow/transcript";
-import { setInitialDocuments } from "@/lib/workflow/matter";
+import { closeMatter, setInitialDocuments } from "@/lib/workflow/matter";
 import { headers } from "next/headers";
 import { getStore } from "@/lib/store";
 
@@ -170,4 +170,11 @@ export async function staffSimpleAction(id: string, action: "startScope" | "call
     if (!(e instanceof WorkflowError)) throw e;
   }
   revalidatePath(`/admin/staff/${id}`);
+}
+
+/** Staff console: close a finished matter. The form requires a "work is complete" confirmation tick. */
+export async function closeMatterAction(id: string, _prev: FormState, fd: FormData): Promise<FormState> {
+  const role = await requireRole("staff", "tim");
+  if (fd.get("confirm") !== "on") return { error: "Tick the box to confirm the work is complete." };
+  return run(() => closeMatter(id, str(fd, "note") || undefined, actorFor(role)), "Matter closed.");
 }

@@ -4,7 +4,7 @@ import type { ConsultingRequest } from "../domain";
 import { copy } from "../messages";
 import { notifyStaff, notifyTim, safely, sendEmail } from "../notify";
 import { getStore } from "../store";
-import { apply, firstName, load, type Actor } from "./core";
+import { apply, firstName, load, WorkflowError, type Actor } from "./core";
 
 export interface Condition {
   label: string;
@@ -76,4 +76,12 @@ export async function setInitialDocuments(id: string, patch: { required?: boolea
     initialDocumentsReceived: patch.received ?? req.initialDocumentsReceived,
   });
   return tryOpenMatter(id, actor);
+}
+
+/** Staff/Tim: the engagement's work is finished. Moves the request to Closed (shown under "Finished"). */
+export async function closeMatter(id: string, note: string | undefined, actor: Actor = "staff"): Promise<ConsultingRequest> {
+  const req = await load(id);
+  if (req.status === "Closed") return req;
+  if (req.status !== "Matter Active") throw new WorkflowError(`Only an active matter can be closed (this one is "${req.status}")`);
+  return apply(req, actor, "Matter closed — work complete", { workStatus: "Complete" }, { to: "Closed", detail: note?.trim() ? `note: ${note.trim().slice(0, 500)}` : undefined });
 }

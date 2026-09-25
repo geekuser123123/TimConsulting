@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { ConsultingRequest } from "@/lib/domain";
-import { saveDiagnosisAction, saveScopeAction, uploadTranscriptAction, type FormState } from "../../actions";
+import { closeMatterAction, saveDiagnosisAction, saveScopeAction, uploadTranscriptAction, type FormState } from "../../actions";
 
 function Status({ state }: { state: FormState }) {
   if (state?.error) return <div className="notice bad small">{state.error}</div>;
@@ -132,6 +132,32 @@ export function TranscriptForm({ req }: { req: ConsultingRequest }) {
         <Status state={state} />
         <button className="btn btn-secondary" type="submit">
           {pending ? "Attaching…" : "Attach transcript"}
+        </button>
+      </fieldset>
+    </form>
+  );
+}
+
+/** Close a matter once the work is done; the tick box prevents accidental closing. */
+export function CloseMatterForm({ req }: { req: ConsultingRequest }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(closeMatterAction.bind(null, req.id), undefined);
+  return (
+    <form action={action} style={{ marginTop: 20, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
+      <fieldset disabled={pending}>
+        <h3 style={{ marginTop: 0 }}>Close this matter</h3>
+        <p className="small muted">When all the work for this client is finished. The request moves to &ldquo;Finished&rdquo;.</p>
+        <div className="field">
+          <label htmlFor="closeNote">
+            Closing note <span className="hint">Optional, e.g. &ldquo;Memo delivered 10/14&rdquo;. Saved in the audit trail.</span>
+          </label>
+          <input id="closeNote" name="note" type="text" maxLength={500} />
+        </div>
+        <label className="check" style={{ display: "flex", gap: 8, alignItems: "flex-start", fontWeight: 400 }}>
+          <input type="checkbox" name="confirm" required /> <span>The work for this client is complete.</span>
+        </label>
+        <Status state={state} />
+        <button className="btn btn-secondary" type="submit">
+          {pending ? "Closing…" : "Mark matter closed"}
         </button>
       </fieldset>
     </form>
