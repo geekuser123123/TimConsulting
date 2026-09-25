@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   const raw = await request.text();
   let event: Stripe.Event;
   try {
-    event = verifyStripeEvent(raw, request.headers.get("stripe-signature"));
+    event = await verifyStripeEvent(raw, request.headers.get("stripe-signature"));
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
