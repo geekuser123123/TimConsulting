@@ -44,8 +44,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="site-main">{children}</div>
         <footer className="site-footer">
           <div className="inner">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="footer-logo" src="/brand/roth-academy-logo.png" alt="Roth Academy" width={464} height={503} />
+            <span className="footer-brand">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="footer-logo" src="/brand/roth-academy-emblem.png" alt="" width={346} height={310} />
+              <strong>Roth Academy</strong>
+            </span>
             <span>Work With Tim Berry · Consulting requests reviewed before scheduling</span>
             <span>Submitting a request does not create an attorney-client relationship.</span>
           </div>
