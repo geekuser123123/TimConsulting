@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Request a discovery call with Tim Berry for a matter that may require attorney-level work. Requests are reviewed before scheduling.",
 };
 
-export const viewport = { themeColor: "#0d363a" };
+export const viewport = { themeColor: "#090a0b" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
