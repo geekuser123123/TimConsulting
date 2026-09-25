@@ -1,5 +1,5 @@
 :root {
-  /* Roth Academy palette: white page, #090A0B / #121315 accent bands, #C6A466 gold CTA */
+  /* Roth Academy palette: white page, soft cream/paper bands, #121315 text, #C6A466 gold CTA */
   --bg: #ffffff;
   --surface: #ffffff;
   --ink: #121315;
@@ -46,19 +46,19 @@ p { margin: 0 0 1rem; }
 @media (max-width: 680px) { .site-header .inner { width: min(100% - 34px, 1160px); min-height: 70px; } .brand-mark { width: 30px; height: 30px; font-size: 17px; } .brand-name { font-size: 16px; } .header-nav .btn { min-height: 40px; font-size: 9px; padding: 0 12px; } }
 @media (max-width: 380px) { .brand-sub { display: none; } }
 
-.site-footer { background: var(--deep); color: #9a9fa5; padding: 30px 0; font-size: 12px; }
+.site-footer { background: #f6f5f2; color: var(--muted); border-top: 2px solid var(--accent); padding: 30px 0; font-size: 12px; }
 .site-footer .inner { width: min(1160px, calc(100% - 48px)); margin: 0 auto; display: flex; justify-content: space-between; gap: 24px; align-items: center; flex-wrap: wrap; }
-.site-footer strong { color: #fff; font: 500 18px var(--serif); }
-.site-footer a { color: #c6a466; text-decoration: none; }
+.site-footer strong { color: var(--ink); font: 500 18px var(--serif); }
+.site-footer a { color: var(--accent-dark); text-decoration: none; }
 
 /* Teal title band used on client pages */
-.page-hero { background: var(--deep); color: #fff; position: relative; overflow: hidden; }
-.page-hero::before { content: ""; position: absolute; right: -150px; top: -220px; width: 510px; height: 510px; border: 1px solid rgba(255,255,255,.06); border-radius: 50%; box-shadow: 0 0 0 75px rgba(255,255,255,.015), 0 0 0 150px rgba(255,255,255,.015); pointer-events: none; }
+.page-hero { background: linear-gradient(180deg, #faf7f0, #f4eee2); color: var(--ink); border-bottom: 1px solid #ebe4d4; position: relative; overflow: hidden; }
+.page-hero::before { content: ""; position: absolute; right: -150px; top: -220px; width: 510px; height: 510px; border: 1px solid rgba(198,164,102,.16); border-radius: 50%; box-shadow: 0 0 0 75px rgba(198,164,102,.03), 0 0 0 150px rgba(198,164,102,.025); pointer-events: none; }
 .page-hero .inner { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 48px; position: relative; }
-.page-hero .eyebrow { color: #c6a466; font-size: 11px; font-weight: 700; letter-spacing: .21em; text-transform: uppercase; }
-.page-hero h1 { color: #fff; font-size: clamp(34px, 4.4vw, 52px); margin: 14px 0 12px; line-height: 1.1; }
-.page-hero h1 em { font-style: normal; color: #c6a466; }
-.page-hero p { color: #b9bdc2; margin: 0; max-width: 620px; font-size: 16px; line-height: 1.75; }
+.page-hero .eyebrow { color: var(--accent-dark); font-size: 11px; font-weight: 700; letter-spacing: .21em; text-transform: uppercase; }
+.page-hero h1 { color: var(--ink); font-size: clamp(34px, 4.4vw, 52px); margin: 14px 0 12px; line-height: 1.1; }
+.page-hero h1 em { font-style: normal; color: var(--accent-dark); }
+.page-hero p { color: var(--muted); margin: 0; max-width: 620px; font-size: 16px; line-height: 1.75; }
 .eyebrow { color: var(--accent-dark); font-size: 11px; font-weight: 700; letter-spacing: .21em; text-transform: uppercase; }
 
 .container { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
@@ -149,8 +149,9 @@ body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: col
 .site-main { flex: 1 0 auto; }
 /* Roth Academy logo */
 .brand-emblem { height: 42px; width: auto; display: block; }
-.footer-logo { height: 72px; width: auto; display: block; }
-@media (max-width: 680px) { .brand-emblem { height: 34px; } .footer-logo { height: 60px; } }
+.footer-brand { display: flex; align-items: center; gap: 12px; }
+.footer-logo { height: 40px; width: auto; display: block; }
+@media (max-width: 680px) { .brand-emblem { height: 34px; } .footer-logo { height: 34px; } }
 .preview-banner { background: #c6a466; color: #090a0b; text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .06em; padding: 6px 12px; }
 /* Built-in calendar */
 .cal-body { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; margin-top: 8px; }
