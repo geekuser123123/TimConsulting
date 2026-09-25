@@ -31,16 +31,16 @@ h2 { font-size: 1.35rem; margin: 2rem 0 0.5rem; }
 h3 { font-size: 1.1rem; margin: 1.25rem 0 0.35rem; }
 p { margin: 0 0 1rem; }
 
-.site-header { position: relative; z-index: 5; background: var(--ink); border-bottom: 1px solid rgba(198, 164, 102, 0.35); }
+.site-header { position: relative; z-index: 5; background: #fff; border-bottom: 1px solid rgba(18, 19, 21, 0.08); }
 .site-header .inner { width: min(1160px, calc(100% - 48px)); margin: 0 auto; min-height: 84px; display: flex; align-items: center; justify-content: space-between; gap: 25px; }
-.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; white-space: nowrap; color: #fff; }
+.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; white-space: nowrap; color: var(--ink); }
 .brand-mark { width: 35px; height: 35px; border: 1.5px solid var(--ink); border-radius: 50%; display: grid; place-items: center; font: 600 19px/1 var(--serif); position: relative; }
 .brand-mark::after { content: ""; position: absolute; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; right: 4px; top: 5px; }
 .brand-name { font: 600 19px/1.1 var(--serif); letter-spacing: -0.04em; }
-.brand-sub { display: block; font: 700 9px/1.5 var(--sans); text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); margin-top: 3px; }
+.brand-sub { display: block; font: 700 9px/1.5 var(--sans); text-transform: uppercase; letter-spacing: 0.2em; color: #8a6d35; margin-top: 3px; }
 .header-nav { display: flex; align-items: center; gap: 31px; }
-.header-nav a:not(.btn) { font-size: 12px; text-decoration: none; font-weight: 600; color: #d6d8db; }
-.header-nav a:not(.btn):hover { color: var(--accent); }
+.header-nav a:not(.btn) { font-size: 12px; text-decoration: none; font-weight: 600; color: #3f4348; }
+.header-nav a:not(.btn):hover { color: var(--accent-dark); }
 .header-nav .btn { min-height: 44px; padding: 0 18px; font-size: 10px; }
 @media (max-width: 900px) { .header-nav a:not(.btn) { display: none; } }
 @media (max-width: 680px) { .site-header .inner { width: min(100% - 34px, 1160px); min-height: 70px; } .brand-mark { width: 30px; height: 30px; font-size: 17px; } .brand-name { font-size: 16px; } .header-nav .btn { min-height: 40px; font-size: 9px; padding: 0 12px; } }
