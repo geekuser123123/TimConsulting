@@ -96,8 +96,13 @@ export const copy = {
 };
 
 export const consentText = {
-  recording:
-    "I consent to discovery calls being recorded and transcribed for note-taking, case evaluation, preparation of a proposed scope of work, and internal recordkeeping.",
+  recordingTitle: "Why discovery calls are recorded",
+  recordingWhy:
+    "Discovery calls are recorded and transcribed so important details are not missed and our team can accurately review your situation and prepare next steps.",
+  recordingPrivacy: "We do not sell your recordings or transcripts.",
+  recording: "I consent to my discovery call being recorded and transcribed for these purposes.",
+  noRecordingPrompt: "Unable to consent to recording?",
+  noRecordingOption: "You may submit your information in writing for review instead.",
   noRelationship:
     "I understand that submitting this request does not guarantee that Tim Berry will accept the matter or create an attorney-client relationship.",
   sensitiveWarning:
