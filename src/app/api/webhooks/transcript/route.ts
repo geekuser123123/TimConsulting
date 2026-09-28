@@ -77,6 +77,20 @@ function normalize(raw: unknown): Record<string, string> {
   return out;
 }
 
+/**
+ * GoHighLevel pastes merge values into the JSON text without escaping them, so a transcript with
+ * quotes or line breaks makes the body invalid JSON. Recover the fields anyway: short fields are
+ * read by name, and the transcript, which the setup guide puts last, is everything between its
+ * opening quote and the final quote before the closing brace.
+ */
+function lenientParse(raw: string): Record<string, string> | null {
+  const out: Record<string, string> = {};
+  for (const m of raw.matchAll(/"([A-Za-z_]+)"\s*:\s*"([^"\r\n]*)"\s*[,}]/g)) out[m[1]] = m[2];
+  const t = raw.match(/"(transcript|transcriptText|transcript_text|html_transcript)"\s*:\s*"([\s\S]*)"\s*}\s*$/);
+  if (t) out[t[1]] = t[2].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+  return Object.keys(out).length ? out : null;
+}
+
 export async function POST(request: Request) {
   const raw = await request.text();
   const secret = config.transcripts.webhookSecret;
@@ -88,7 +102,8 @@ export async function POST(request: Request) {
   try {
     json = JSON.parse(raw || "{}");
   } catch {
-    return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
+    json = lenientParse(raw);
+    if (!json) return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
   const parsed = Body.safeParse(normalize(json));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 422 });
