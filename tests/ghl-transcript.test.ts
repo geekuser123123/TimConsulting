@@ -84,6 +84,14 @@ describe("GoHighLevel call transcripts", () => {
     expect((await store.getRequest(req.id))!.transcriptText).toBeFalsy();
   });
 
+  it("copes with GHL's unescaped merge values (quotes and line breaks in the transcript)", async () => {
+    const req = await booked(inHours(-0.5));
+    const raw = `{\n  "phone": "+15551234567",\n  "email": "jane.doe@example.com",\n  "transcript": "Tim: Hello, Jane.\nJane: He said "maybe" about the LLC.\nTim: OK."\n}`;
+    const res = await POST(new Request("https://consulting.test/api/webhooks/transcript", { method: "POST", headers: { "x-webhook-secret": SECRET }, body: raw }));
+    expect(await res.json()).toMatchObject({ ok: true, requestId: req.id });
+    expect((await store.getRequest(req.id))!.transcriptText).toBe('Tim: Hello, Jane.\nJane: He said "maybe" about the LLC.\nTim: OK.');
+  });
+
   it("requires the secret", async () => {
     await booked(inHours(-0.5));
     expect((await ghl({ phone: "5551234567", customData: { transcript: "A: x" } }, null)).status).toBe(401);

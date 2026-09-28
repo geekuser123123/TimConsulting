@@ -47,7 +47,11 @@ Confirmation plus the 24-hour and 1-hour reminders are sent by this system, so C
 **GoHighLevel phone calls (recommended for phone calls):** Tim calls the client from a GHL (LC Phone) number with call recording and transcription turned on. A GHL workflow sends each transcript to the site:
 
 1. Trigger **Transcript Generated** (phone calls).
-2. Action **Custom Webhook**: `POST https://<site>/api/webhooks/transcript`, header `X-Webhook-Secret: <TRANSCRIPT_WEBHOOK_SECRET>`, Custom Data `transcript` = the transcript merge field (and `recording_url` = the recording link, if available). GHL adds the contact's `phone` and `email` automatically.
+2. Action **Custom Webhook**: `POST https://<site>/api/webhooks/transcript`, header `X-Webhook-Secret: <TRANSCRIPT_WEBHOOK_SECRET>`, Custom Data `transcript` = the transcript merge field (and `recording_url` = the recording link, if available). Raw body (keep `transcript` last — GHL doesn't escape merge values, and the site recovers a transcript containing quotes or line breaks only when it is the last field):
+
+   ```json
+   { "phone": "{{contact.phone}}", "email": "{{contact.email}}", "transcript": "<transcript merge field>" }
+   ```
 
 The site attaches the transcript to that client's request whose call was booked between 48 hours ago and 3 hours from now (matched by phone, then email). Transcripts from any other call on the same number are ignored. Transcripts for clients who did not consent are rejected and staff are alerted.
 
