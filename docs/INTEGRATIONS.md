@@ -44,7 +44,14 @@ Confirmation plus the 24-hour and 1-hour reminders are sent by this system, so C
 
 **Zoom:** create a Zoom webhook-only app. Subscribe it to `recording.transcript_completed` (and optionally `recording.completed`) at `https://<site>/api/webhooks/zoom`, enable "include download token", and set `ZOOM_WEBHOOK_SECRET_TOKEN`. Turn on cloud recording with audio transcript for Tim's account. Recordings are matched to the request by the meeting ID in the join URL saved at booking.
 
-**Any other provider** (Fireflies, Otter, a vendor, Zapier/Make): POST JSON to `/api/webhooks/transcript` with header `X-Signature: sha256=<HMAC-SHA256(TRANSCRIPT_WEBHOOK_SECRET, body)>`:
+**GoHighLevel phone calls (recommended for phone calls):** Tim calls the client from a GHL (LC Phone) number with call recording and transcription turned on. A GHL workflow sends each transcript to the site:
+
+1. Trigger **Transcript Generated** (phone calls).
+2. Action **Custom Webhook**: `POST https://<site>/api/webhooks/transcript`, header `X-Webhook-Secret: <TRANSCRIPT_WEBHOOK_SECRET>`, Custom Data `transcript` = the transcript merge field (and `recording_url` = the recording link, if available). GHL adds the contact's `phone` and `email` automatically.
+
+The site attaches the transcript to that client's request whose call was booked between 48 hours ago and 3 hours from now (matched by phone, then email). Transcripts from any other call on the same number are ignored. Transcripts for clients who did not consent are rejected and staff are alerted.
+
+**Any other provider** (Fireflies, Otter, a vendor, Zapier/Make): POST JSON to `/api/webhooks/transcript` with header `X-Signature: sha256=<HMAC-SHA256(TRANSCRIPT_WEBHOOK_SECRET, body)>` (or, for tools that can't sign, `X-Webhook-Secret: <TRANSCRIPT_WEBHOOK_SECRET>`):
 
 ```json
 { "calendarEventId": "...", "recordingUrl": "https://...", "transcriptUrl": "https://...", "transcriptText": "..." }

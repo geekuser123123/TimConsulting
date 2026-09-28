@@ -11,6 +11,9 @@ export interface TranscriptInput {
   calendarEventId?: string;
   meetingUrl?: string;
   meetingId?: string;
+  /** Phone-system calls (e.g. GoHighLevel): the client's phone number and/or email. */
+  phone?: string;
+  email?: string;
   recordingUrl?: string;
   transcriptUrl?: string;
   transcriptText?: string;
@@ -33,7 +36,33 @@ async function match(input: TranscriptInput): Promise<ConsultingRequest | null> 
     const candidates = await store.listRequests(["Discovery Scheduled", "Discovery Completed", "Scope Being Prepared"]);
     return candidates.find((r) => r.meetingUrl?.replace(/\s/g, "").includes(id)) ?? null;
   }
+  if (input.phone || input.email) return matchByContact(input.phone, input.email);
   return null;
+}
+
+const lastTenDigits = (v?: string) => (v ?? "").replace(/\D/g, "").slice(-10);
+
+/**
+ * A phone system (GoHighLevel) only knows who was called. Attach the transcript to that client's
+ * request whose call was booked around now: from 48 hours ago up to 3 hours ahead (Tim calling a
+ * bit early). Any other call with the same person is ignored, so a transcript can never land on a
+ * request whose call is days away.
+ */
+async function matchByContact(phone?: string, email?: string, now = Date.now()): Promise<ConsultingRequest | null> {
+  const digits = lastTenDigits(phone);
+  const mail = email?.trim().toLowerCase();
+  if (digits.length < 10 && !mail) return null;
+  const candidates = (await getStore().listRequests(["Discovery Scheduled", "Discovery Completed", "Scope Being Prepared"])).filter((r) => {
+    if (r.transcriptReceived || !r.scheduledAt) return false;
+    const at = Date.parse(r.scheduledAt);
+    if (!(at >= now - 48 * 3600e3 && at <= now + 3 * 3600e3)) return false;
+    const phoneMatch = digits.length === 10 && (lastTenDigits(r.phone) === digits || lastTenDigits(r.meetingUrl) === digits);
+    const emailMatch = Boolean(mail) && r.email.trim().toLowerCase() === mail;
+    return phoneMatch || emailMatch;
+  });
+  // Closest booked time wins if the same person somehow has two calls in the window.
+  candidates.sort((a, b) => Math.abs(Date.parse(a.scheduledAt!) - now) - Math.abs(Date.parse(b.scheduledAt!) - now));
+  return candidates[0] ?? null;
 }
 
 /** Call is over → wait for transcript. Called by the cron sweep (or staff). Idempotent. */
