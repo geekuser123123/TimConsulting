@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { config } from "@/lib/config";
 import { engagementAgreement } from "@/lib/messages";
 import { formatUsd } from "@/lib/workflow/core";
 import { resolveProposalToken } from "@/lib/workflow/proposal";
@@ -43,6 +44,14 @@ export default async function ProposalPage({ params, searchParams }: { params: P
   const awaitingDecision = req.status === "Proposal Sent";
   const needsSignature = req.clientDecision === "Accepted" && req.engagementAgreementStatus === "Pending Signature";
   const needsPayment = req.status === "Accepted - Payment Pending" && !needsSignature;
+  // Over $500: ACH bank payment; at or below: card (see STRIPE_ACH_ABOVE).
+  const methods = config.stripe.paymentMethodsFor(req.feeAmount ?? 0);
+  const payHow =
+    methods.includes("us_bank_account") && methods.includes("card")
+      ? "from your bank account (ACH) or by card"
+      : methods.includes("us_bank_account")
+        ? "from your bank account (ACH)"
+        : "by debit or credit card";
 
   return (
     <main>
@@ -71,7 +80,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
         </section>
         <section className="proposal-section">
           <h2>Payment</h2>
-          <p>{req.paymentRequired ? "Payment is required before work begins. You can pay securely from your bank account (ACH) through Stripe after accepting." : "No payment is required before work begins."}</p>
+          <p>{req.paymentRequired ? `Payment is required before work begins. You can pay securely ${payHow} through Stripe after accepting.` : "No payment is required before work begins."}</p>
         </section>
 
         {awaitingDecision && (
@@ -105,7 +114,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
             <>
               {req.paymentStatus === "Failed" && <div className="notice bad">Your previous bank payment didn&rsquo;t go through. Please try again below.</div>}
               <p>
-                Your professional fee of <strong>{formatUsd(req.feeAmount)}</strong> is due before work begins. You&rsquo;ll pay securely from your bank account (ACH) through Stripe.
+                Your professional fee of <strong>{formatUsd(req.feeAmount)}</strong> is due before work begins. You&rsquo;ll pay securely {payHow} through Stripe.
               </p>
               <form action={payNowAction.bind(null, token)}>
                 <PendingButton className="btn btn-gold" label="Pay securely with Stripe" pendingLabel="Opening secure checkout…" />

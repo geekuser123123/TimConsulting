@@ -46,11 +46,19 @@ async function readyToPay() {
 const session = (id: string, payment_status: string) => ({ id: "cs_ach_1", metadata: { consulting_request_id: id }, amount_total: 150000, currency: "usd", payment_status });
 
 describe("ACH bank payments", () => {
-  it("offers ACH (us_bank_account) on Stripe Checkout by default", () => {
+  it("over $500 pays by ACH only; $500 or less pays by card", () => {
     delete process.env.STRIPE_PAYMENT_METHODS;
-    expect(config.stripe.paymentMethods).toEqual(["us_bank_account"]);
+    delete process.env.STRIPE_ACH_ABOVE;
+    expect(config.stripe.paymentMethodsFor(1500)).toEqual(["us_bank_account"]);
+    expect(config.stripe.paymentMethodsFor(500.01)).toEqual(["us_bank_account"]);
+    expect(config.stripe.paymentMethodsFor(500)).toEqual(["card"]);
+    expect(config.stripe.paymentMethodsFor(125)).toEqual(["card"]);
+    process.env.STRIPE_ACH_ABOVE = "1000";
+    expect(config.stripe.paymentMethodsFor(800)).toEqual(["card"]);
+    delete process.env.STRIPE_ACH_ABOVE;
+    // Manual override applies to every payment
     process.env.STRIPE_PAYMENT_METHODS = "us_bank_account, card";
-    expect(config.stripe.paymentMethods).toEqual(["us_bank_account", "card"]);
+    expect(config.stripe.paymentMethodsFor(100)).toEqual(["us_bank_account", "card"]);
     delete process.env.STRIPE_PAYMENT_METHODS;
   });
 
