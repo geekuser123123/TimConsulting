@@ -4,6 +4,7 @@ import { outbox } from "@/lib/notify";
 import { setPaymentGateway, type PaymentGateway } from "@/lib/payments";
 import { intakeSchema, type IntakeInput } from "@/lib/intake-schema";
 import { submitRequest } from "@/lib/workflow/intake";
+import { forwardToTim } from "@/lib/workflow/review";
 
 export class FakeGateway implements PaymentGateway {
   created: { requestId: string; amount: number }[] = [];
@@ -45,8 +46,15 @@ export const baseIntake: IntakeInput = {
   acknowledgeNoRelationship: true,
 };
 
-export async function submit(overrides: Partial<IntakeInput> = {}) {
+/** Website submission only: the request waits for staff screening ("Pending Staff Review"). */
+export async function submitOnly(overrides: Partial<IntakeInput> = {}) {
   return submitRequest(intakeSchema.parse({ ...baseIntake, ...overrides }));
+}
+
+/** Website submission that staff have screened and sent on to Tim ("Pending Tim Review"). */
+export async function submit(overrides: Partial<IntakeInput> = {}) {
+  const req = await submitOnly(overrides);
+  return forwardToTim(req.id);
 }
 
 export function emailsTo(address: string) {

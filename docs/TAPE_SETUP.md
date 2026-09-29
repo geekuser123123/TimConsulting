@@ -58,6 +58,8 @@ This confirms every field and dropdown option is present. With `--smoke` it also
 
 ## 5. Tim's two views (the only things Tim needs)
 
+**View: New Requests for Staff**. Filter: `Status = Pending Staff Review`. Staff screen each new website request here or on the staff dashboard, then click **Send to Tim** or **Decline** on the staff dashboard.
+
 **View: Requests Waiting for Tim**. Filter: `Status = Pending Tim Review`. Columns: Client Name · Client Goal · Client Question · Timing / Deadline · Current Client · Account Type · Transaction Summary · **Tim Decision** · Decline Reason.
 
 Tim sets **Tim Decision = Accept** or **Decline** (Decline Reason is optional). That single change is the whole action.
@@ -104,7 +106,9 @@ Optional native Tape notifications (for example "notify Tim when a record enters
 
 | Trigger | Handled by |
 |---|---|
-| New request → notify Tim/staff | Website → `submitRequest` |
+| New request → notify staff only | Website → `submitRequest` |
+| Staff send to Tim → notify Tim | Staff dashboard → `forwardToTim` |
+| Staff decline → client decline email | Staff dashboard → `staffDeclineRequest` |
 | Tim accepts → send scheduling link | Tape webhook / dashboard → `acceptRequest` |
 | Tim declines → send decline message | Tape webhook / dashboard → `declineRequest` |
 | Appointment booked → update status and appointment fields | Calendly webhook → `handleBookingEvent` |

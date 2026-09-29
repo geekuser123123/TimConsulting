@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "../config";
 import { TIM_DECLINE_REASONS, type ConsultingRequest, type TimDeclineReason } from "../domain";
 import { copy } from "../messages";
-import { notifyStaff, safely, sendEmail, sendSms } from "../notify";
+import { notifyStaff, notifyTim, safely, sendEmail, sendSms } from "../notify";
 import { createPrivateSchedulingLink } from "../scheduling";
 import { getStore } from "../store";
 import { makeToken, newNonce, nonceMatches, parseToken } from "../tokens";
@@ -11,6 +11,39 @@ import { apply, firstName, load, nowIso, WorkflowError, type Actor } from "./cor
 export function scheduleLink(req: Pick<ConsultingRequest, "id" | "scheduleNonce">): string {
   if (!req.scheduleNonce) throw new WorkflowError("Request has no scheduling token");
   return `${config.siteUrl}/work-with-tim/schedule/${makeToken("schedule", req.id, req.scheduleNonce)}`;
+}
+
+/**
+ * Staff: SEND TO TIM — staff have screened the submission and pass it on for Tim's decision.
+ * Tim is emailed and the request appears on his dashboard. Idempotent.
+ */
+export async function forwardToTim(id: string, actor: Actor = "staff"): Promise<ConsultingRequest> {
+  const req = await load(id);
+  if (req.status === "Pending Tim Review") return req;
+  if (req.status !== "Pending Staff Review") throw new WorkflowError(`Request is "${req.status}" and can no longer be sent to Tim`);
+  const updated = await apply(req, actor, "Staff sent request to Tim for review", {}, { to: "Pending Tim Review" });
+  await notifyTim(
+    `Discovery request waiting: ${req.clientName}`,
+    `Staff reviewed a new discovery call request and sent it to you for a decision.\n\nClient: ${req.clientName}${req.currentClient ? " (current client)" : ""}\n\nOpen it to read the full submission, then accept or decline:\n${config.siteUrl}/admin/tim/${req.id}`,
+  );
+  return updated;
+}
+
+/** Staff: DECLINE before it reaches Tim. The client gets the standard decline message. Idempotent. */
+export async function staffDeclineRequest(id: string, reason?: string, actor: Actor = "staff"): Promise<ConsultingRequest> {
+  const req = await load(id);
+  if (req.status === "Declined by Staff") return req;
+  if (req.status !== "Pending Staff Review") throw new WorkflowError(`Request is "${req.status}" and can no longer be declined by staff`);
+  const declineReason = TIM_DECLINE_REASONS.includes(reason as TimDeclineReason) ? (reason as TimDeclineReason) : undefined;
+  const updated = await apply(
+    req,
+    actor,
+    "Staff declined discovery request",
+    { declineReason, approvedToSchedule: false },
+    { to: "Declined by Staff", detail: declineReason ? `reason: ${declineReason}` : undefined },
+  );
+  await safely("decline email", () => sendEmail(req.email, copy.timDeclined.subject, copy.timDeclined.body(firstName(req))));
+  return updated;
 }
 
 /** Tim: ACCEPT — one action. Everything after this is automatic. Idempotent. */

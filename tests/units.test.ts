@@ -31,8 +31,9 @@ describe("private link tokens", () => {
 });
 
 describe("pipeline", () => {
-  it("has the 13 spec statuses and never leaves Closed", () => {
-    expect(PIPELINE_STATUSES).toHaveLength(13);
+  it("has the 13 spec statuses plus the 2 staff-screening statuses, and never leaves Closed", () => {
+    expect(PIPELINE_STATUSES).toHaveLength(15);
+    expect(canTransition("Pending Staff Review", "Approved to Schedule")).toBe(false); // Tim must decide first
     for (const s of PIPELINE_STATUSES) expect(canTransition("Closed", s)).toBe(false);
     expect(canTransition("Pending Tim Review", "Discovery Scheduled")).toBe(false);
     expect(canTransition("Proposal Sent", "Matter Active")).toBe(false);
