@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TIM_DECLINE_REASONS } from "@/lib/domain";
 import { consentText } from "@/lib/messages";
 import { getStore } from "@/lib/store";
 import { formatUsd, formatWhen } from "@/lib/workflow/core";
 import { engagementConditions } from "@/lib/workflow/matter";
 import { nextAction } from "@/lib/workflow/next-action";
-import { staffSimpleAction } from "../../actions";
+import { staffDeclineAction, staffForwardAction, staffSimpleAction } from "../../actions";
 import { KV } from "../../KV";
 import { CloseMatterForm, DiagnosisForm, ScopeForm, TranscriptForm } from "./Forms";
 
@@ -37,6 +38,27 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
           Next: <strong>{next.who}</strong> — {next.what}
         </span>
       </p>
+      {r.status === "Pending Staff Review" && (
+        <div className="card decision-bar">
+          <strong>New request — review it below, then:</strong>
+          <form action={staffForwardAction.bind(null, r.id)}>
+            <button className="btn btn-ok" type="submit">
+              Send to Tim
+            </button>
+          </form>
+          <form action={staffDeclineAction.bind(null, r.id)} className="inline-form">
+            <select name="reason" defaultValue="" aria-label="Decline reason (optional)">
+              <option value="">Reason (optional)</option>
+              {TIM_DECLINE_REASONS.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+            <button className="btn btn-bad" type="submit">
+              Decline
+            </button>
+          </form>
+        </div>
+      )}
       {r.alternativeHandling && <div className="notice">No recording/transcription consent. Do not record this client. Arrange the discovery call manually.</div>}
       {r.timScopeApproval === "Needs Changes" && r.status === "Scope Being Prepared" && (
         <div className="notice">Tim sent this scope back for changes{r.timScopeNotes ? `: “${r.timScopeNotes}”` : "."}</div>
@@ -135,7 +157,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
               Status: {r.scopeStatus} · Tim approval: {r.timScopeApproval}
               {r.scopeApprovedAt ? ` (${d(r.scopeApprovedAt)})` : ""}
             </p>
-            {!scopeEditable && r.status !== "Pending Tim Review" && <p className="small muted">The scope can be edited while the request is “Scope Being Prepared”.</p>}
+            {!scopeEditable && !["Pending Staff Review", "Declined by Staff", "Pending Tim Review"].includes(r.status) && <p className="small muted">The scope can be edited while the request is “Scope Being Prepared”.</p>}
             <ScopeForm req={r} editable={scopeEditable} />
           </div>
 

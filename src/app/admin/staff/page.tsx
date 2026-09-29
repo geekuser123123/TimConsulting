@@ -9,15 +9,15 @@ export const metadata: Metadata = { title: "Staff Console" };
 export const dynamic = "force-dynamic";
 
 const GROUPS: Record<string, PipelineStatus[]> = {
-  "Needs staff": ["Declined by Tim", "Discovery Completed", "Scope Being Prepared", "Accepted - Ready to Begin", "Matter Active"],
+  "Needs staff": ["Pending Staff Review", "Declined by Tim", "Discovery Completed", "Scope Being Prepared", "Accepted - Ready to Begin", "Matter Active"],
   "Waiting on Tim": ["Pending Tim Review", "Pending Tim Scope Approval"],
   "Waiting on client": ["Approved to Schedule", "Discovery Scheduled", "Proposal Sent", "Accepted - Payment Pending"],
-  Finished: ["Proposal Declined", "Closed"],
+  Finished: ["Declined by Staff", "Proposal Declined", "Closed"],
   All: [...PIPELINE_STATUSES],
 };
 
 function badgeClass(status: PipelineStatus) {
-  if (status.startsWith("Pending Tim")) return "badge warn";
+  if (status.startsWith("Pending")) return "badge warn";
   if (status === "Matter Active" || status.startsWith("Accepted")) return "badge ok";
   if (status === "Closed") return "badge ok"; // work finished
   if (status.includes("Declined")) return "badge bad";

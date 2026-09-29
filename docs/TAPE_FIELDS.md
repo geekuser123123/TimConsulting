@@ -11,7 +11,7 @@ _Generated from `src/lib/store/tape-schema.ts` by `npm run tape:doc`. Do not edi
 
 | Field label | Type | Options | Visible to Tim |
 |---|---|---|---|
-| Status | Single category | Pending Tim Review · Declined by Tim · Approved to Schedule · Discovery Scheduled · Discovery Completed · Scope Being Prepared · Pending Tim Scope Approval · Proposal Sent · Accepted - Payment Pending · Accepted - Ready to Begin · Proposal Declined · Matter Active · Closed | Yes |
+| Status | Single category | Pending Staff Review · Declined by Staff · Pending Tim Review · Declined by Tim · Approved to Schedule · Discovery Scheduled · Discovery Completed · Scope Being Prepared · Pending Tim Scope Approval · Proposal Sent · Accepted - Payment Pending · Accepted - Ready to Begin · Proposal Declined · Matter Active · Closed | Yes |
 
 ### Client
 

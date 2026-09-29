@@ -3,15 +3,15 @@ import { config } from "../config";
 import type { ConsultingRequest, NewConsultingRequest } from "../domain";
 import type { IntakeData } from "../intake-schema";
 import { copy } from "../messages";
-import { notifyStaff, notifyTim, safely, sendEmail } from "../notify";
+import { notifyStaff, safely, sendEmail } from "../notify";
 import { getStore } from "../store";
 import { nowIso } from "./core";
 
 /**
  * Website request → Tape.
  * 1. Find existing contact by email, then phone. 2. Update it, or create a new one.
- * 3. Create a new Consulting Request linked to the contact, status "Pending Tim Review".
- * 4. Notify Tim and staff. 5. Confirm to the requester. Tim's schedule is never exposed here.
+ * 3. Create a new Consulting Request linked to the contact, status "Pending Staff Review".
+ * 4. Notify staff (they screen it and send it on to Tim). 5. Confirm to the requester. Tim's schedule is never exposed here.
  */
 export async function submitRequest(data: IntakeData, source = "Website – Work With Tim"): Promise<ConsultingRequest> {
   const store = getStore();
@@ -32,7 +32,7 @@ export async function submitRequest(data: IntakeData, source = "Website – Work
   const recordingConsent = data.recordingConsent === "yes";
   const at = nowIso();
   const draft: NewConsultingRequest = {
-    status: "Pending Tim Review",
+    status: "Pending Staff Review",
     contactId: contact.id,
     clientName: `${data.firstName} ${data.lastName}`.trim(),
     currentClient: currentClient || Boolean(existing?.currentClient),
@@ -93,15 +93,11 @@ export async function submitRequest(data: IntakeData, source = "Website – Work
   const created = await store.createRequest(draft);
   const consoleLink = `${config.siteUrl}/admin/staff/${created.id}`;
 
-  await notifyTim(
-    `Discovery request waiting: ${created.clientName}`,
-    `A new discovery call request is waiting for your review.\n\nClient: ${created.clientName}${created.currentClient ? " (current client)" : ""}\n\nAccept or decline in Tape, or here: ${config.siteUrl}/admin/tim`,
-  );
   await notifyStaff(
-    `New discovery request: ${created.clientName}${recordingConsent ? "" : " — NO RECORDING CONSENT"}`,
-    `New request from ${created.clientName} is pending Tim's review.${
+    `New discovery call request: ${created.clientName}${recordingConsent ? "" : " — NO RECORDING CONSENT"}`,
+    `A new discovery call request from ${created.clientName}${created.currentClient ? " (current client)" : ""} is waiting for staff review.\n\nOpen it to read the submission, then send it to Tim for his decision or decline it:\n${consoleLink}${
       recordingConsent ? "" : "\n\nThe requester did NOT consent to recording/transcription. Do not auto-record. Alternative handling is required if Tim accepts."
-    }\n\n${consoleLink}`,
+    }`,
   );
   await safely("requester confirmation", () => sendEmail(created.email, copy.requestReceived.subject, copy.requestReceived.body(data.firstName)));
 

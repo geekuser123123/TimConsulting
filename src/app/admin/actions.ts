@@ -8,7 +8,7 @@ import { clientIp, rateLimit } from "@/lib/http";
 import { createSession, SESSION_COOKIE, SESSION_TTL_SECONDS, sessionSecret } from "@/lib/session";
 import type { FeeType } from "@/lib/domain";
 import { WorkflowError } from "@/lib/workflow/core";
-import { acceptRequest, declineRequest } from "@/lib/workflow/review";
+import { acceptRequest, declineRequest, forwardToTim, staffDeclineRequest } from "@/lib/workflow/review";
 import { approveScope, requestScopeChanges, saveScopeDraft, startScope, submitScopeToTim } from "@/lib/workflow/scope";
 import { receiveTranscript, markCallCompleted } from "@/lib/workflow/transcript";
 import { closeMatter, setInitialDocuments } from "@/lib/workflow/matter";
@@ -48,6 +48,28 @@ async function run(fn: () => Promise<unknown>, ok: string): Promise<FormState> {
   }
   revalidatePath("/admin", "layout");
   return { ok };
+}
+
+// ---- Staff screening (before Tim sees a request) ----------------------------------------------
+
+export async function staffForwardAction(id: string) {
+  const role = await requireRole("staff", "tim");
+  try {
+    await forwardToTim(id, actorFor(role));
+  } catch (e) {
+    if (!(e instanceof WorkflowError)) throw e;
+  }
+  revalidatePath("/admin", "layout");
+}
+
+export async function staffDeclineAction(id: string, formData: FormData) {
+  const role = await requireRole("staff", "tim");
+  try {
+    await staffDeclineRequest(id, String(formData.get("reason") ?? "") || undefined, actorFor(role));
+  } catch (e) {
+    if (!(e instanceof WorkflowError)) throw e;
+  }
+  revalidatePath("/admin", "layout");
 }
 
 // ---- Tim's one-click actions -------------------------------------------------------------------

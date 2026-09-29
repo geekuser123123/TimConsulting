@@ -3,6 +3,10 @@ import type { ConsultingRequest } from "../domain";
 /** What (if anything) a human needs to do next, and who. Drives the staff console. */
 export function nextAction(r: ConsultingRequest): { who: "Tim" | "Staff" | "Client" | "System" | "—"; what: string } {
   switch (r.status) {
+    case "Pending Staff Review":
+      return { who: "Staff", what: "Review submission; send to Tim or decline" };
+    case "Declined by Staff":
+      return { who: "—", what: "Declined before Tim review" };
     case "Pending Tim Review":
       return { who: "Tim", what: "Accept or decline request" };
     case "Declined by Tim":

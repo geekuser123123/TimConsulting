@@ -9,6 +9,8 @@
  */
 
 export const PIPELINE_STATUSES = [
+  "Pending Staff Review",
+  "Declined by Staff",
   "Pending Tim Review",
   "Declined by Tim",
   "Approved to Schedule",
@@ -27,6 +29,8 @@ export type PipelineStatus = (typeof PIPELINE_STATUSES)[number];
 
 /** Allowed moves for the single main pipeline field. Anything else is rejected. */
 export const ALLOWED_TRANSITIONS: Record<PipelineStatus, readonly PipelineStatus[]> = {
+  "Pending Staff Review": ["Pending Tim Review", "Declined by Staff", "Closed"],
+  "Declined by Staff": ["Closed"],
   "Pending Tim Review": ["Declined by Tim", "Approved to Schedule", "Closed"],
   "Declined by Tim": ["Closed"],
   "Approved to Schedule": ["Discovery Scheduled", "Closed"],
