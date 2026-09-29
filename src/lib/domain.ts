@@ -75,7 +75,8 @@ export type TimDecision = "Pending" | "Accept" | "Decline";
 export type ScopeStatus = "Not Started" | "Drafting" | "Submitted to Tim" | "Needs Changes" | "Approved";
 export type TimScopeApproval = "Pending" | "Approved" | "Needs Changes";
 export type ClientDecision = "Pending" | "Accepted" | "Declined";
-export type PaymentStatus = "Not Required" | "Unpaid" | "Paid" | "Refunded";
+/** Processing = a bank (ACH) payment was submitted and is clearing; Failed = the bank returned it. */
+export type PaymentStatus = "Not Required" | "Unpaid" | "Processing" | "Paid" | "Failed" | "Refunded";
 export type AttorneyWorkRequired = "Yes" | "No" | "Unclear";
 export type FeeType = "Fixed Fee" | "Hourly" | "Retainer" | "No Charge";
 export type EngagementAgreementStatus = "Not Required" | "Pending Signature" | "Signed";

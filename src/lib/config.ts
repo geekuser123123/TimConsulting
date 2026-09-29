@@ -213,6 +213,17 @@ export const config = {
     get enabled() {
       return Boolean(process.env.STRIPE_SECRET_KEY);
     },
+    /**
+     * Payment methods offered on Stripe Checkout, comma-separated. Default: ACH bank payment only.
+     * "us_bank_account,card" offers both. Each must also be turned on in Stripe → Payment methods.
+     */
+    get paymentMethods(): string[] {
+      const list = (process.env.STRIPE_PAYMENT_METHODS ?? "us_bank_account")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return list.length ? list : ["us_bank_account"];
+    },
   },
 
   engagement: {

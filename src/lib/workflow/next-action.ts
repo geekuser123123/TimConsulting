@@ -28,7 +28,11 @@ export function nextAction(r: ConsultingRequest): { who: "Tim" | "Staff" | "Clie
     case "Accepted - Payment Pending":
       return r.engagementAgreementStatus === "Pending Signature"
         ? { who: "Client", what: "Sign engagement agreement" }
-        : { who: "Client", what: "Pay via Stripe" };
+        : r.paymentStatus === "Processing"
+          ? { who: "System", what: "Bank payment clearing (3–5 business days)" }
+          : r.paymentStatus === "Failed"
+            ? { who: "Client", what: "Bank payment failed — pay again (link emailed)" }
+            : { who: "Client", what: "Pay via Stripe" };
     case "Accepted - Ready to Begin":
       if (r.engagementAgreementStatus === "Pending Signature") return { who: "Client", what: "Sign engagement agreement" };
       if (r.initialDocumentsRequired && !r.initialDocumentsReceived) return { who: "Staff", what: "Collect initial documents" };

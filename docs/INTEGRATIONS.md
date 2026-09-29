@@ -84,7 +84,7 @@ Off by default (`AI_SUMMARY_ENABLED=false`). When enabled, `src/lib/summary.ts` 
 ## Payments: Stripe
 
 1. Set `STRIPE_SECRET_KEY`.
-2. Add a webhook endpoint at `https://<site>/api/webhooks/stripe` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`, then set `STRIPE_WEBHOOK_SECRET`.
+2. Add a webhook endpoint at `https://<site>/api/webhooks/stripe` for `checkout.session.completed`, `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed`, then set `STRIPE_WEBHOOK_SECRET`.
 3. For testing, use a Stripe **sandbox** (keys start with `sk_test_`) and the test card `4242 4242 4242 4242` (any future date, any CVC). Once `STRIPE_SECRET_KEY` is set, the preview's fake checkout page is replaced by real Stripe Checkout, even with `PREVIEW_MODE=true`.
 
 Flow:
@@ -94,6 +94,9 @@ Flow:
 - The webhook is **signature-verified**. It checks that the amount matches the approved fee, then sets Payment Status = Paid, Amount Paid, Payment Date and Stripe IDs, moves the status to Accepted - Ready to Begin, and opens the matter if every other condition is met. Nobody has to check Stripe by hand.
 - An amount mismatch never opens a matter. It is flagged to staff instead.
 - Engagements with no upfront payment skip Stripe entirely.
+- **ACH bank payments** (default): Checkout offers `us_bank_account` with instant bank verification. Turn on **ACH Direct Debit** in Stripe → Settings → Payment methods. `STRIPE_PAYMENT_METHODS` (comma-separated, default `us_bank_account`) controls what is offered; `us_bank_account,card` offers both.
+  - Bank payments clear in about 3–5 business days. When checkout completes the request shows **Payment Status = Processing** and the client is emailed that it is clearing; no second checkout is offered.
+  - Cleared (`async_payment_succeeded`) → Paid, and the matter opens as usual. Returned by the bank (`async_payment_failed`) → **Failed**; the client is emailed a link to pay again and staff are alerted.
 
 ## Email and SMS
 
