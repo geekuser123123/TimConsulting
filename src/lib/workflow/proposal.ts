@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "../config";
 import { CLIENT_DECLINE_REASONS, type ClientDeclineReason, type ConsultingRequest } from "../domain";
 import { copy } from "../messages";
-import { notifyStaff, safely, sendEmail } from "../notify";
+import { inBackground, notifyStaff, safely, sendEmail } from "../notify";
 import { METADATA_KEY, paymentGateway } from "../payments";
 import { getStore } from "../store";
 import { makeToken, nonceMatches, parseToken } from "../tokens";
@@ -60,7 +60,7 @@ export async function acceptProposal(token: string, meta: { ip?: string; userAge
     `Proposal accepted: ${req.clientName}`,
     `${req.clientName} accepted the proposal.${req.paymentRequired ? " Payment is pending (Stripe link is shown to the client automatically)." : " No upfront payment is required."}\n\n${config.siteUrl}/admin/staff/${req.id}`,
   );
-  return tryOpenMatter(req.id, "system");
+  return tryOpenMatter(req, "system");
 }
 
 /** Client: sign the engagement agreement (click-wrap e-signature with audit trail). */
@@ -78,7 +78,7 @@ export async function signEngagement(token: string, signedName: string, meta: { 
     { engagementAgreementStatus: "Signed", engagementSignedName: name, engagementSignedAt: nowIso(), engagementSignedIp: meta.ip },
     { detail: `signed as "${name}"; ip ${meta.ip ?? "unknown"}; ua ${(meta.userAgent ?? "unknown").slice(0, 120)}` },
   );
-  return tryOpenMatter(req.id, "system");
+  return tryOpenMatter(req, "system");
 }
 
 /** Client: DECLINE with optional reason. No further automatic sales follow-up. */
@@ -109,12 +109,15 @@ export async function getPaymentUrl(req: ConsultingRequest): Promise<string | nu
   if (req.stripePaymentUrl && expires - Date.now() > 15 * 60 * 1000) return req.stripePaymentUrl;
 
   const checkout = await paymentGateway().createCheckout(req, proposalToken(req));
-  await apply(req, "system", "Stripe checkout created", {
-    stripeCheckoutId: checkout.id,
-    stripePaymentUrl: checkout.url,
-    stripePaymentUrlExpiresAt: checkout.expiresAt,
-    stripeCustomerId: checkout.customerId ?? req.stripeCustomerId,
-  });
+  // The client goes straight to Stripe; saving the link on the record happens in the background.
+  await inBackground("save checkout", () =>
+    apply(req, "system", "Stripe checkout created", {
+      stripeCheckoutId: checkout.id,
+      stripePaymentUrl: checkout.url,
+      stripePaymentUrlExpiresAt: checkout.expiresAt,
+      stripeCustomerId: checkout.customerId ?? req.stripeCustomerId,
+    }),
+  );
   return checkout.url;
 }
 
@@ -164,6 +167,13 @@ export async function recordPayment(session: PaidCheckout): Promise<ConsultingRe
   );
   await safely("payment receipt", () => sendEmail(req.email, copy.paymentReceived.subject, copy.paymentReceived.body(firstName(req), formatUsd(amount))));
   await notifyStaff(`Payment received: ${req.clientName}`, `${formatUsd(amount)} received from ${req.clientName}.\n\n${config.siteUrl}/admin/staff/${req.id}`);
-  return tryOpenMatter(req.id, "system");
+  // The payment is recorded; Stripe gets its answer now and the matter (record, tasks, emails) is
+  // opened right after. If that is ever interrupted, the 10-minute sweep opens it (reconcile).
+  let result = req;
+  const paid = req;
+  await inBackground("open matter", async () => {
+    result = await tryOpenMatter(paid, "system");
+  });
+  return result;
 }
 

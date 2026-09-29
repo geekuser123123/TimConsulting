@@ -30,8 +30,9 @@ export function allConditionsMet(r: ConsultingRequest): boolean {
  * Open the matter only once ALL required conditions are complete. Safe to call any time
  * (after acceptance, signature, payment, document receipt, or from a sweep) — it is idempotent.
  */
-export async function tryOpenMatter(id: string, actor: Actor = "system"): Promise<ConsultingRequest> {
-  let req = await load(id);
+export async function tryOpenMatter(request: string | ConsultingRequest, actor: Actor = "system"): Promise<ConsultingRequest> {
+  // Callers that just saved the request pass it in, saving a Tape read.
+  let req = typeof request === "string" ? await load(request) : request;
   if (req.matterOpened || req.status !== "Accepted - Ready to Begin" || !allConditionsMet(req)) return req;
 
   const store = getStore();
@@ -48,7 +49,7 @@ export async function tryOpenMatter(id: string, actor: Actor = "system"): Promis
     { assignee: "staff" as const, title: `Prepare file and background for Tim — ${req.clientName}`, description: req.diagKeyFacts },
     { assignee: "tim" as const, title: `Attorney work: ${req.clientName}`, description: `Deliverables:\n${req.scopeDeliverables ?? ""}` },
   ];
-  for (const t of tasks) await store.createTask({ ...t, matterId: matter.id, requestId: req.id });
+  await Promise.all(tasks.map((t) => store.createTask({ ...t, matterId: matter.id, requestId: req.id })));
 
   req = await apply(
     req,
@@ -71,11 +72,11 @@ export async function tryOpenMatter(id: string, actor: Actor = "system"): Promis
 /** Staff: mark the initial documents as received (a matter-opening condition when required). */
 export async function setInitialDocuments(id: string, patch: { required?: boolean; received?: boolean }, actor: Actor = "staff") {
   const req = await load(id);
-  await apply(req, actor, "Initial documents updated", {
+  const updated = await apply(req, actor, "Initial documents updated", {
     initialDocumentsRequired: patch.required ?? req.initialDocumentsRequired,
     initialDocumentsReceived: patch.received ?? req.initialDocumentsReceived,
   });
-  return tryOpenMatter(id, actor);
+  return tryOpenMatter(updated, actor);
 }
 
 /** Staff/Tim: the engagement's work is finished. Moves the request to Closed (shown under "Finished"). */

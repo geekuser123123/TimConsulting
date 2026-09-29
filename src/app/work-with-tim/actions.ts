@@ -24,7 +24,7 @@ export async function bookSlotAction(token: string, formData: FormData) {
   const phone = String(formData.get("phone") ?? "");
   let error: string | undefined;
   try {
-    await bookSlot(req.id, slot, phone);
+    await bookSlot(req, slot, phone);
   } catch (e) {
     if (!(e instanceof WorkflowError)) throw e;
     error = e.message;

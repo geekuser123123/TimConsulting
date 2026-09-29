@@ -36,20 +36,15 @@ export class StripeGateway implements PaymentGateway {
     const amount = Math.round((req.feeAmount ?? 0) * 100);
     if (amount < 50) throw new Error("Fee amount is too small for card payment");
 
-    let customerId = req.stripeCustomerId;
-    if (!customerId) {
-      const customer = await s.customers.create(
-        { email: req.email, name: req.clientName, phone: req.phone, metadata: { [METADATA_KEY]: req.id, tape_contact_id: req.contactId } },
-        { idempotencyKey: `customer-${req.id}` },
-      );
-      customerId = customer.id;
-    }
+    // One Stripe call: an existing customer is reused; otherwise Checkout creates the customer
+    // itself (its ID arrives with the payment webhook and is saved on the Tape record then).
+    const customerId = req.stripeCustomerId?.startsWith("cus_") && req.stripeCustomerId !== "cus_mock" ? req.stripeCustomerId : undefined;
 
     const metadata = { [METADATA_KEY]: req.id };
     const expiresAt = Math.floor(Date.now() / 1000) + 23 * 60 * 60; // Stripe max is 24h; we regenerate on demand
     const session = await s.checkout.sessions.create({
       mode: "payment",
-      customer: customerId,
+      ...(customerId ? { customer: customerId } : { customer_email: req.email, customer_creation: "always" as const }),
       client_reference_id: req.id,
       line_items: [
         {

@@ -8,7 +8,7 @@ import { normalizePhone, toE164 } from "../normalize";
 import { notifyStaff, notifyTim, safely, sendEmail, type EmailAttachment } from "../notify";
 import { cancelUnapprovedBooking, type BookingEvent } from "../scheduling";
 import { getStore } from "../store";
-import { apply, firstName, formatWhen, load, nowIso, WorkflowError, type Actor } from "./core";
+import { apply, firstName, formatWhen, load, WorkflowError, type Actor } from "./core";
 import { scheduleLink } from "./review";
 
 const builtin = () => config.scheduling.driver === "builtin";
@@ -62,8 +62,8 @@ async function matchRequest(ev: BookingEvent): Promise<ConsultingRequest | null>
  * Booking webhook → Tape. Only requests Tim approved can be booked; anything else is
  * cancelled at the provider and flagged to staff.
  */
-export async function handleBookingEvent(ev: BookingEvent, actor: Actor = "scheduler"): Promise<ConsultingRequest | null> {
-  const req = await matchRequest(ev);
+export async function handleBookingEvent(ev: BookingEvent, actor: Actor = "scheduler", loaded?: ConsultingRequest, extra: Partial<ConsultingRequest> = {}): Promise<ConsultingRequest | null> {
+  const req = loaded && loaded.id === ev.requestId ? loaded : await matchRequest(ev);
 
   if (ev.kind === "canceled") {
     if (!req || req.calendarEventId !== ev.eventId || req.status !== "Discovery Scheduled") return req;
@@ -110,8 +110,9 @@ export async function handleBookingEvent(ev: BookingEvent, actor: Actor = "sched
       calendarEventId: ev.eventId,
       reminder24hSent: false,
       reminder1hSent: false,
+      ...extra,
     },
-    { to: "Discovery Scheduled", detail: `at ${ev.startTime}` },
+    { to: "Discovery Scheduled", detail: `at ${ev.startTime}${extra.phone ? "; phone number updated for the call" : ""}` },
   );
 
   const when = formatWhen(updated.scheduledAt);
@@ -158,6 +159,7 @@ export function availability(): Availability {
 
 /** Tim's open call times, minus calls already booked by other clients. */
 export async function openSlots(forRequestId?: string, now = new Date()): Promise<string[]> {
+  if (!builtin()) return [];
   const booked = (await getStore().listRequests(["Discovery Scheduled"]))
     .filter((r) => r.id !== forRequestId && r.scheduledAt)
     .map((r) => r.scheduledAt!);
@@ -170,23 +172,43 @@ export function clientCanChange(req: ConsultingRequest, now = new Date()): boole
   return Date.parse(req.scheduledAt) - now.getTime() >= config.scheduling.minNoticeHours * 3600e3;
 }
 
+// One booking at a time per request: a second click while the first is still saving waits for
+// it instead of booking (and emailing) twice.
+const inFlight = new Map<string, Promise<ConsultingRequest | null>>();
+
 /** Client books (or moves) their call on the built-in calendar. Tim phones them at `phone`. */
-export async function bookSlot(requestId: string, startTime: string, phone?: string): Promise<ConsultingRequest | null> {
-  let req = await load(requestId);
+export async function bookSlot(request: string | ConsultingRequest, startTime: string, phone?: string): Promise<ConsultingRequest | null> {
+  const id = typeof request === "string" ? request : request.id;
+  const running = inFlight.get(id);
+  if (running) return running;
+  const job = doBookSlot(request, startTime, phone).finally(() => inFlight.delete(id));
+  inFlight.set(id, job);
+  return job;
+}
+
+async function doBookSlot(request: string | ConsultingRequest, startTime: string, phone?: string): Promise<ConsultingRequest | null> {
+  const req = typeof request === "string" ? await load(request) : request;
+  const start = new Date(startTime);
+  if (Number.isNaN(start.getTime())) throw new WorkflowError("That time is no longer available. Please choose another time.", "invalid_input");
+  // Already booked at exactly this time (e.g. the Book button was pressed twice): nothing to do.
+  if (req.status === "Discovery Scheduled" && req.scheduledAt === start.toISOString()) return req;
   if (req.status === "Discovery Scheduled" && !clientCanChange(req)) {
     throw new WorkflowError("Your call is too soon to change online. Please reply to your confirmation email.", "invalid_state");
   }
-  const start = new Date(startTime);
-  if (Number.isNaN(start.getTime()) || !(await openSlots(req.id)).includes(start.toISOString())) {
+  if (!(await openSlots(req.id)).includes(start.toISOString())) {
     throw new WorkflowError("That time is no longer available. Please choose another time.", "invalid_input");
   }
   const number = phone?.trim() || req.phone;
   const e164 = toE164(number);
   if (!e164) throw new WorkflowError("Please enter a valid phone number for Tim to call.", "invalid_input");
-  if (normalizePhone(number) !== normalizePhone(req.phone)) {
-    req = await getStore().updateRequest(req.id, { phone: number }, { at: nowIso(), actor: "client", action: "Updated phone number for the call" });
-  }
-  return handleBookingEvent({ kind: "booked", requestId: req.id, eventId: `call-${req.id}-${start.getTime()}`, startTime: start.toISOString(), meetingUrl: `tel:${e164}` }, "client");
+  // A changed phone number is saved in the same update as the booking (one Tape write, not two).
+  const extra = normalizePhone(number) !== normalizePhone(req.phone) ? { phone: number } : {};
+  return handleBookingEvent(
+    { kind: "booked", requestId: req.id, eventId: `call-${req.id}-${start.getTime()}`, startTime: start.toISOString(), meetingUrl: `tel:${e164}` },
+    "client",
+    { ...req, ...extra },
+    extra,
+  );
 }
 
 /** Client cancels their call on the built-in calendar (their private link keeps working to rebook). */

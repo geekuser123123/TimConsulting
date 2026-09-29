@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PendingButton } from "../../../PendingButton";
 
 export interface CalendarDay {
   /** "YYYY-MM-DD" in Tim's time zone */
@@ -129,9 +130,7 @@ export function SlotCalendar({ days, today, zoneLabel, phone, submitLabel, actio
         <label htmlFor="phone">Phone number Tim should call</label>
         <input id="phone" name="phone" type="tel" defaultValue={phone} required autoComplete="tel" style={{ maxWidth: 260 }} />
         <p className="cal-summary">{selectedTime && selectedDay ? `${longDay.format(utc(selectedDay.date))} at ${selectedTime.label} (${zoneLabel})` : "No time selected yet."}</p>
-        <button className="btn btn-gold" type="submit" disabled={!slot}>
-          {submitLabel}
-        </button>
+        <PendingButton className="btn btn-gold" label={submitLabel} pendingLabel="Booking your call…" disabled={!slot} />
       </div>
     </form>
   );
