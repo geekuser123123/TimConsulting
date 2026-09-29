@@ -332,8 +332,7 @@ describe("V1 acceptance tests", () => {
     const actions = r.auditLog.map((e) => e.action);
     for (const step of [
       "Request submitted via website",
-      "Tim accepted discovery request",
-      "Private scheduling link sent (email + text)",
+      "Tim accepted discovery request — private scheduling link sent (email + text)",
       "Discovery call booked",
       "Recording/transcript attached",
       "Scope submitted to Tim for approval",

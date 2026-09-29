@@ -31,7 +31,11 @@ export interface CrmStore {
   createRequest(data: NewConsultingRequest): Promise<ConsultingRequest>;
   getRequest(id: string): Promise<ConsultingRequest | null>;
   /** Apply a patch; when `audit` is given it is appended to the audit trail in the same write. */
-  updateRequest(id: string, patch: RequestPatch, audit?: AuditEntry): Promise<ConsultingRequest>;
+  /**
+   * `currentAuditLog`: the record's audit trail as the caller just read it. When given, the store may
+   * append to it directly instead of re-reading the record first (saves a round-trip).
+   */
+  updateRequest(id: string, patch: RequestPatch, audit?: AuditEntry, currentAuditLog?: AuditEntry[]): Promise<ConsultingRequest>;
   listRequests(statuses?: PipelineStatus[]): Promise<ConsultingRequest[]>;
   findRequestBy(field: RequestLookupField, value: string): Promise<ConsultingRequest | null>;
   appendAudit(id: string, entry: AuditEntry): Promise<void>;

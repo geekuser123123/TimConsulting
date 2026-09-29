@@ -157,14 +157,13 @@ export class TapeStore implements CrmStore {
     return this.requests(async (s) => this.toRequest(s, rec));
   }
 
-  updateRequest(id: string, patch: RequestPatch, audit?: AuditEntry) {
+  updateRequest(id: string, patch: RequestPatch, audit?: AuditEntry, currentAuditLog?: AuditEntry[]) {
     return this.requests(async (s) => {
       const fields = { ...patch } as Partial<ConsultingRequest>;
       if (audit) {
-        // The audit trail is one JSON field, so appending means read → append → write. Doing it in
-        // the same PUT as the patch keeps it to two API calls per workflow step.
-        const current = await this.client.getRecord(id);
-        const log = this.toRequest(s, current).auditLog;
+        // The audit trail is one JSON field, so appending means read → append → write, in the same
+        // PUT as the patch. When the caller has just read the record, its copy is used (one call).
+        const log = currentAuditLog ?? this.toRequest(s, await this.client.getRecord(id)).auditLog;
         fields.auditLog = [...log, audit];
       }
       return this.toRequest(s, await this.client.updateRecord(id, s.encode(fields, { clear: true })));

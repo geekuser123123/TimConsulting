@@ -6,7 +6,7 @@ import { inBackground, notifyStaff, safely, sendEmail } from "../notify";
 import { METADATA_KEY, paymentGateway } from "../payments";
 import { getStore } from "../store";
 import { makeToken, nonceMatches, parseToken } from "../tokens";
-import { apply, firstName, formatUsd, load, nowIso, WorkflowError } from "./core";
+import { apply, firstName, formatUsd, load, markFresh, nowIso, WorkflowError } from "./core";
 import { tryOpenMatter } from "./matter";
 
 const PROPOSAL_VISIBLE = new Set([
@@ -23,7 +23,7 @@ export async function resolveProposalToken(token: string): Promise<ConsultingReq
   if (!parsed) return null;
   const req = await getStore().getRequest(parsed.requestId);
   if (!req || !nonceMatches(req.proposalNonce, parsed.nonce) || !PROPOSAL_VISIBLE.has(req.status)) return null;
-  return req;
+  return markFresh(req);
 }
 
 async function requireProposal(token: string) {
