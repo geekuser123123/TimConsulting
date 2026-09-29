@@ -7,9 +7,11 @@ import { providerBookingUrl } from "@/lib/scheduling";
 import { clientCanChange, openSlots } from "@/lib/workflow/booking";
 import { formatWhen } from "@/lib/workflow/core";
 import { resolveScheduleToken } from "@/lib/workflow/review";
+import { parseToken } from "@/lib/tokens";
 import { bookSlotAction, cancelSlotAction } from "../../actions";
 import { PageHero } from "../../../PageHero";
 import { SlotCalendar } from "./SlotCalendar";
+import { PendingButton } from "../../../PendingButton";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Schedule Your Discovery Call", robots: { index: false, follow: false } };
@@ -35,7 +37,9 @@ function SlotPicker({ token, slots, phone, submitLabel }: { token: string; slots
 export default async function SchedulePage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ error?: string; cancelled?: string }> }) {
   const { token } = await params;
   const { error, cancelled } = await searchParams;
-  const req = await resolveScheduleToken(token);
+  // Load the request and Tim's open times at the same time (the token already names the request).
+  const tokenRequestId = parseToken("schedule", token)?.requestId;
+  const [req, open] = await Promise.all([resolveScheduleToken(token), tokenRequestId ? openSlots(tokenRequestId) : Promise.resolve([])]);
   const minutes = config.scheduling.callDurationMinutes;
   const builtin = config.scheduling.driver === "builtin";
 
@@ -56,7 +60,7 @@ export default async function SchedulePage({ params, searchParams }: { params: P
 
   if (req.status === "Discovery Scheduled") {
     const canChange = builtin && clientCanChange(req);
-    const slots = canChange ? (await openSlots(req.id)).filter((s) => s !== req.scheduledAt) : [];
+    const slots = canChange ? open.filter((s) => s !== req.scheduledAt) : [];
     return (
       <main>
         <PageHero eyebrow="Discovery call confirmed" title={<>You&rsquo;re <em>scheduled.</em></>} />
@@ -86,9 +90,7 @@ export default async function SchedulePage({ params, searchParams }: { params: P
               <SlotPicker token={token} slots={slots} phone={req.meetingUrl?.slice(4) ?? req.phone} submitLabel="Move my call to this time" />
               <form action={cancelSlotAction.bind(null, token)} style={{ marginTop: 24, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
                 <p className="muted small">Can&rsquo;t make it at all? You can cancel and pick a new time later with this same link.</p>
-                <button className="btn btn-secondary btn-sm" type="submit">
-                  Cancel my call
-                </button>
+                <PendingButton className="btn btn-secondary btn-sm" label="Cancel my call" pendingLabel="Cancelling…" />
               </form>
             </div>
           )}
@@ -117,7 +119,7 @@ export default async function SchedulePage({ params, searchParams }: { params: P
             <>
               <h2>Choose a time</h2>
               <p>Tim will call you by phone at the time you choose.</p>
-              <SlotPicker token={token} slots={await openSlots(req.id)} phone={req.phone} submitLabel="Book this time" />
+              <SlotPicker token={token} slots={open} phone={req.phone} submitLabel="Book this time" />
             </>
           )}
         </div>

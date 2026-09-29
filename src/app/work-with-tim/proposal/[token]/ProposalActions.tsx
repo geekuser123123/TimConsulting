@@ -7,8 +7,14 @@ import { acceptProposalAction, declineProposalAction, signEngagementAction, type
 function Submit({ label, pending, className = "btn btn-primary" }: { label: string; pending: string; className?: string }) {
   const { pending: isPending } = useFormStatus();
   return (
-    <button className={className} type="submit" disabled={isPending}>
-      {isPending ? pending : label}
+    <button className={className} type="submit" disabled={isPending} aria-busy={isPending}>
+      {isPending ? (
+        <>
+          <span className="spinner" aria-hidden="true" /> {pending}
+        </>
+      ) : (
+        label
+      )}
     </button>
   );
 }

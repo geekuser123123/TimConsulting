@@ -5,6 +5,7 @@ import { resolveProposalToken } from "@/lib/workflow/proposal";
 import { CLIENT_DECLINE_REASONS } from "@/lib/domain";
 import { AcceptButton, DeclineForm, SignForm } from "./ProposalActions";
 import { payNowAction } from "../../actions";
+import { PendingButton } from "../../../PendingButton";
 import { PageHero } from "../../../PageHero";
 
 export const dynamic = "force-dynamic";
@@ -100,9 +101,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
             Your professional fee of <strong>{formatUsd(req.feeAmount)}</strong> is due before work begins.
           </p>
           <form action={payNowAction.bind(null, token)}>
-            <button className="btn btn-gold" type="submit">
-              Pay securely with Stripe
-            </button>
+            <PendingButton className="btn btn-gold" label="Pay securely with Stripe" pendingLabel="Opening secure checkout…" />
           </form>
         </div>
       )}

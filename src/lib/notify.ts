@@ -5,6 +5,7 @@
  * notifications link to the staff console; the record itself lives in Tape.
  */
 import "server-only";
+import { after } from "next/server";
 import { config } from "./config";
 import { toE164 } from "./normalize";
 
@@ -94,13 +95,30 @@ export async function sendSms(to: string, body: string): Promise<void> {
   if (!res.ok) throw new Error(`SMS send failed (${res.status})`);
 }
 
-/** Notifications must never break the workflow step that triggered them. */
-export async function safely(label: string, fn: () => Promise<void>): Promise<void> {
+/**
+ * Runs `fn` after the response has been sent when called during a web request (page, server
+ * action or webhook), so the visitor never waits for emails, texts or other side work. Outside a
+ * request (cron sweep, scripts, tests) it simply runs now. Errors are logged, never thrown.
+ */
+export async function inBackground(label: string, fn: () => Promise<unknown>): Promise<void> {
+  const run = async () => {
+    try {
+      await fn();
+    } catch (e) {
+      console.error(`[background] ${label} failed:`, e instanceof Error ? e.message : e);
+    }
+  };
   try {
-    await fn();
-  } catch (e) {
-    console.error(`[notify] ${label} failed:`, e instanceof Error ? e.message : e);
+    after(run); // throws when there is no request to attach to
+    return;
+  } catch {
+    await run();
   }
+}
+
+/** Notifications must never break (or slow down) the workflow step that triggered them. */
+export function safely(label: string, fn: () => Promise<void>): Promise<void> {
+  return inBackground(label, fn);
 }
 
 export const notifyTim = (subject: string, body: string) => safely("tim", () => sendEmail(config.email.timEmail, subject, body));

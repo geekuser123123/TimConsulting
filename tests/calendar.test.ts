@@ -108,7 +108,24 @@ describe("booking on the built-in calendar", () => {
     const [slot] = await openSlots(jane.id);
     const r = await bookSlot(jane.id, slot, "(555) 999-8888");
     expect(r).toMatchObject({ phone: "(555) 999-8888", meetingUrl: "tel:+15559998888" });
-    expect(r!.auditLog.some((e) => e.action === "Updated phone number for the call")).toBe(true);
+    // Saved in the same Tape update as the booking; the audit entry says so.
+    expect(r!.auditLog.at(-1)).toMatchObject({ action: "Discovery call booked", detail: expect.stringContaining("phone number updated for the call") });
+  });
+
+  it("pressing Book twice books once and sends the confirmation emails once", async () => {
+    const jane = await approved();
+    const [slot] = await openSlots(jane.id);
+    const before = outbox().length;
+    // Two clicks at the same moment, then a third after the first finished
+    const [a, b] = await Promise.all([bookSlot(jane.id, slot, "555-123-4567"), bookSlot(jane.id, slot, "555-123-4567")]);
+    const c = await bookSlot(jane.id, slot, "555-123-4567");
+    expect(a!.scheduledAt).toBe(slot);
+    expect(b!.scheduledAt).toBe(slot);
+    expect(c!.scheduledAt).toBe(slot);
+    const sent = outbox().slice(before);
+    expect(sent.filter((m) => m.to === "jane.doe@example.com")).toHaveLength(1);
+    expect(sent.filter((m) => m.to === "tim@firm.test")).toHaveLength(1);
+    expect(c!.auditLog.filter((e) => e.action === "Discovery call booked")).toHaveLength(1);
   });
 
   it("lets the client reschedule and cancel before the cut-off, then rebook", async () => {
