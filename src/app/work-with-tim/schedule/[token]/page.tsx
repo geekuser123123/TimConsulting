@@ -10,6 +10,7 @@ import { resolveScheduleToken } from "@/lib/workflow/review";
 import { parseToken } from "@/lib/tokens";
 import { bookSlotAction, cancelSlotAction } from "../../actions";
 import { PageHero } from "../../../PageHero";
+import { ScrollHere } from "./ScrollHere";
 import { SlotCalendar } from "./SlotCalendar";
 import { PendingButton } from "../../../PendingButton";
 
@@ -34,9 +35,9 @@ function SlotPicker({ token, slots, phone, submitLabel }: { token: string; slots
   );
 }
 
-export default async function SchedulePage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ error?: string; cancelled?: string }> }) {
+export default async function SchedulePage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ error?: string; cancelled?: string; booked?: string }> }) {
   const { token } = await params;
-  const { error, cancelled } = await searchParams;
+  const { error, cancelled, booked } = await searchParams;
   // Load the request and Tim's open times at the same time (the token already names the request).
   const tokenRequestId = parseToken("schedule", token)?.requestId;
   const [req, open] = await Promise.all([resolveScheduleToken(token), tokenRequestId ? openSlots(tokenRequestId) : Promise.resolve([])]);
@@ -56,7 +57,12 @@ export default async function SchedulePage({ params, searchParams }: { params: P
     );
   }
 
-  const errorBox = error ? <div className="notice bad">{error.slice(0, 200)}</div> : null;
+  const errorBox = error ? (
+    <div className="notice bad" style={{ scrollMarginTop: 24 }}>
+      <ScrollHere />
+      {error.slice(0, 200)}
+    </div>
+  ) : null;
 
   if (req.status === "Discovery Scheduled") {
     const canChange = builtin && clientCanChange(req);
@@ -66,7 +72,15 @@ export default async function SchedulePage({ params, searchParams }: { params: P
         <PageHero eyebrow="Discovery call confirmed" title={<>You&rsquo;re <em>scheduled.</em></>} />
         <div className="container">
           {errorBox}
-          <div className="card">
+          <div className="card" style={{ scrollMarginTop: 24 }}>
+            {booked && !error && (
+              <>
+                <ScrollHere />
+                <div className="notice ok" role="status" style={{ marginTop: 0 }}>
+                  Your call is booked. A confirmation email with a calendar invite is on its way.
+                </div>
+              </>
+            )}
             <p className="eyebrow">Your discovery call</p>
             <p className="fee">{formatWhen(req.scheduledAt)}</p>
             {req.meetingUrl?.startsWith("tel:") ? (
