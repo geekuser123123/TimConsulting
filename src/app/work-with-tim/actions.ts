@@ -29,7 +29,7 @@ export async function bookSlotAction(token: string, formData: FormData) {
     if (!(e instanceof WorkflowError)) throw e;
     error = e.message;
   }
-  redirect(error ? `${page}?error=${encodeURIComponent(error)}` : page);
+  redirect(error ? `${page}?error=${encodeURIComponent(error)}` : `${page}?booked=1`);
 }
 
 export async function cancelSlotAction(token: string) {
