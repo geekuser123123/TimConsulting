@@ -7,6 +7,7 @@ import { getStore } from "@/lib/store";
 import { formatUsd, formatWhen } from "@/lib/workflow/core";
 import { timAcceptAction, timApproveScopeAction, timDeclineAction, timNeedsChangesAction } from "../../actions";
 import { KV } from "../../KV";
+import { PendingButton } from "../../../PendingButton";
 
 export const metadata: Metadata = { title: "Request for Tim" };
 export const dynamic = "force-dynamic";
@@ -44,9 +45,7 @@ export default async function TimRequestDetail({ params }: { params: Promise<{ i
           <strong>Your decision</strong>
           <form action={timAcceptAction.bind(null, r.id)}>
             <input type="hidden" name="return" value="dashboard" />
-            <button className="btn btn-ok" type="submit">
-              Accept
-            </button>
+            <PendingButton className="btn btn-ok" label="Accept" pendingLabel="Accepting…" />
           </form>
           <form action={timDeclineAction.bind(null, r.id)} className="inline-form">
             <input type="hidden" name="return" value="dashboard" />
@@ -56,9 +55,7 @@ export default async function TimRequestDetail({ params }: { params: Promise<{ i
                 <option key={x}>{x}</option>
               ))}
             </select>
-            <button className="btn btn-bad" type="submit">
-              Decline
-            </button>
+            <PendingButton className="btn btn-bad" label="Decline" pendingLabel="Declining…" />
           </form>
         </div>
       )}
@@ -99,16 +96,12 @@ export default async function TimRequestDetail({ params }: { params: Promise<{ i
             <strong>Your decision</strong>
             <form action={timApproveScopeAction.bind(null, r.id)}>
               <input type="hidden" name="return" value="dashboard" />
-              <button className="btn btn-gold" type="submit">
-                Approve &amp; send proposal
-              </button>
+              <PendingButton className="btn btn-gold" label="Approve & send proposal" pendingLabel="Sending proposal…" />
             </form>
             <form action={timNeedsChangesAction.bind(null, r.id)} className="inline-form">
               <input type="hidden" name="return" value="dashboard" />
               <input name="note" placeholder="Note to staff (optional)" className="note-input" />
-              <button className="btn btn-bad" type="submit">
-                Needs changes
-              </button>
+              <PendingButton className="btn btn-bad" label="Needs changes" pendingLabel="Sending back…" />
             </form>
           </div>
         </>

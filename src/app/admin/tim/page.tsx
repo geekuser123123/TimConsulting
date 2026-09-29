@@ -4,6 +4,7 @@ import { getStore } from "@/lib/store";
 import { formatPhone } from "@/lib/normalize";
 import { formatUsd, formatWhen } from "@/lib/workflow/core";
 import { timAcceptAction, timApproveScopeAction, timDeclineAction, timNeedsChangesAction } from "../actions";
+import { PendingButton } from "../../PendingButton";
 
 export const metadata: Metadata = { title: "Tim's Dashboards" };
 export const dynamic = "force-dynamic";
@@ -93,7 +94,7 @@ export default async function TimDashboards() {
                   <td>{r.currentClient ? <span className="badge ok">Yes</span> : "No"}</td>
                   <td className="actions">
                     <form action={timAcceptAction.bind(null, r.id)}>
-                      <button className="btn btn-ok btn-sm" type="submit">Accept</button>
+                      <PendingButton className="btn btn-ok btn-sm" label="Accept" pendingLabel="Accepting…" />
                     </form>
                   </td>
                   <td className="actions">
@@ -102,7 +103,7 @@ export default async function TimDashboards() {
                         <option value="">Reason (optional)</option>
                         {TIM_DECLINE_REASONS.map((x) => <option key={x}>{x}</option>)}
                       </select>
-                      <button className="btn btn-bad btn-sm" type="submit">Decline</button>
+                      <PendingButton className="btn btn-bad btn-sm" label="Decline" pendingLabel="Declining…" />
                     </form>
                   </td>
                 </tr>
@@ -146,13 +147,13 @@ export default async function TimDashboards() {
                   </td>
                   <td className="actions">
                     <form action={timApproveScopeAction.bind(null, r.id)}>
-                      <button className="btn btn-ok btn-sm" type="submit">Approve</button>
+                      <PendingButton className="btn btn-ok btn-sm" label="Approve" pendingLabel="Approving…" />
                     </form>
                   </td>
                   <td className="actions">
                     <form action={timNeedsChangesAction.bind(null, r.id)} className="inline-form">
                       <input type="text" name="note" placeholder="Note (optional)" aria-label="Note (optional)" className="note-input" />
-                      <button className="btn btn-bad btn-sm" type="submit">Needs Changes</button>
+                      <PendingButton className="btn btn-bad btn-sm" label="Needs Changes" pendingLabel="Sending back…" />
                     </form>
                   </td>
                 </tr>

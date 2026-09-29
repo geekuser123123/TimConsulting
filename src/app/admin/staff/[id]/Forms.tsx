@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { ConsultingRequest } from "@/lib/domain";
 import { closeMatterAction, saveDiagnosisAction, saveScopeAction, uploadTranscriptAction, type FormState } from "../../actions";
+import { PendingButton } from "../../../PendingButton";
 
 function Status({ state }: { state: FormState }) {
   if (state?.error) return <div className="notice bad small">{state.error}</div>;
@@ -62,12 +63,8 @@ export function ScopeForm({ req, editable }: { req: ConsultingRequest; editable:
         <Status state={state} />
         {editable && (
           <div className="btn-row">
-            <button className="btn btn-secondary" type="submit" name="intent" value="save">
-              Save draft
-            </button>
-            <button className="btn btn-primary" type="submit" name="intent" value="submit">
-              Submit to Tim for approval
-            </button>
+            <PendingButton className="btn btn-secondary" name="intent" value="save" label="Save draft" pendingLabel="Saving…" />
+            <PendingButton className="btn btn-primary" name="intent" value="submit" label="Submit to Tim for approval" pendingLabel="Submitting to Tim…" />
           </div>
         )}
       </fieldset>
@@ -100,9 +97,7 @@ export function DiagnosisForm({ req }: { req: ConsultingRequest }) {
         <Area name="diagDocumentsNeeded" label="Documents Needed" value={req.diagDocumentsNeeded} rows={2} />
         <Area name="internalComments" label="Internal Comments" value={req.internalComments} rows={2} />
         <Status state={state} />
-        <button className="btn btn-secondary" type="submit">
-          Save diagnosis
-        </button>
+        <PendingButton className="btn btn-secondary" label="Save diagnosis" pendingLabel="Saving…" />
       </fieldset>
     </form>
   );
@@ -130,9 +125,7 @@ export function TranscriptForm({ req }: { req: ConsultingRequest }) {
           </div>
         </div>
         <Status state={state} />
-        <button className="btn btn-secondary" type="submit">
-          {pending ? "Attaching…" : "Attach transcript"}
-        </button>
+        <PendingButton className="btn btn-secondary" label="Attach transcript" pendingLabel="Attaching…" />
       </fieldset>
     </form>
   );
@@ -156,9 +149,7 @@ export function CloseMatterForm({ req }: { req: ConsultingRequest }) {
           <input type="checkbox" name="confirm" required /> <span>The work for this client is complete.</span>
         </label>
         <Status state={state} />
-        <button className="btn btn-secondary" type="submit">
-          {pending ? "Closing…" : "Mark matter closed"}
-        </button>
+        <PendingButton className="btn btn-secondary" label="Mark matter closed" pendingLabel="Closing…" />
       </fieldset>
     </form>
   );

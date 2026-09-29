@@ -10,6 +10,7 @@ import { nextAction } from "@/lib/workflow/next-action";
 import { staffDeclineAction, staffForwardAction, staffSimpleAction } from "../../actions";
 import { KV } from "../../KV";
 import { CloseMatterForm, DiagnosisForm, ScopeForm, TranscriptForm } from "./Forms";
+import { PendingButton } from "../../../PendingButton";
 
 export const metadata: Metadata = { title: "Consulting Request" };
 export const dynamic = "force-dynamic";
@@ -42,9 +43,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
         <div className="card decision-bar">
           <strong>New request — review it below, then:</strong>
           <form action={staffForwardAction.bind(null, r.id)}>
-            <button className="btn btn-ok" type="submit">
-              Send to Tim
-            </button>
+            <PendingButton className="btn btn-ok" label="Send to Tim" pendingLabel="Sending to Tim…" />
           </form>
           <form action={staffDeclineAction.bind(null, r.id)} className="inline-form">
             <select name="reason" defaultValue="" aria-label="Decline reason (optional)">
@@ -53,9 +52,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
                 <option key={x}>{x}</option>
               ))}
             </select>
-            <button className="btn btn-bad" type="submit">
-              Decline
-            </button>
+            <PendingButton className="btn btn-bad" label="Decline" pendingLabel="Declining…" />
           </form>
         </div>
       )}
@@ -106,7 +103,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
             />
             {r.status === "Discovery Scheduled" && (
               <form action={act("callCompleted")} style={{ marginTop: 12 }}>
-                <button className="btn btn-secondary btn-sm" type="submit">Mark call completed</button>
+                <PendingButton className="btn btn-secondary btn-sm" label="Mark call completed" pendingLabel="Saving…" />
               </form>
             )}
           </div>
@@ -136,7 +133,7 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
             )}
             {(r.status === "Discovery Completed" || r.status === "Discovery Scheduled") && (
               <form action={act("startScope")} style={{ marginTop: 12 }}>
-                <button className="btn btn-secondary btn-sm" type="submit">Start scope without transcript</button>
+                <PendingButton className="btn btn-secondary btn-sm" label="Start scope without transcript" pendingLabel="Starting…" />
               </form>
             )}
           </div>
@@ -201,17 +198,17 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
             <div className="btn-row">
               {r.initialDocumentsRequired && !r.initialDocumentsReceived && (
                 <form action={act("docsReceived")}>
-                  <button className="btn btn-secondary btn-sm" type="submit">Mark initial documents received</button>
+                  <PendingButton className="btn btn-secondary btn-sm" label="Mark initial documents received" pendingLabel="Saving…" />
                 </form>
               )}
               {!r.matterOpened && !r.initialDocumentsRequired && (
                 <form action={act("docsRequired")}>
-                  <button className="btn btn-secondary btn-sm" type="submit">Require initial documents before opening</button>
+                  <PendingButton className="btn btn-secondary btn-sm" label="Require initial documents before opening" pendingLabel="Saving…" />
                 </form>
               )}
               {!r.matterOpened && r.initialDocumentsRequired && !r.initialDocumentsReceived && (
                 <form action={act("docsNotRequired")}>
-                  <button className="btn btn-secondary btn-sm" type="submit">Don&rsquo;t require documents</button>
+                  <PendingButton className="btn btn-secondary btn-sm" label="Don’t require documents" pendingLabel="Saving…" />
                 </form>
               )}
             </div>

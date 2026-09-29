@@ -3,6 +3,7 @@ import Link from "next/link";
 import { currentRole } from "@/lib/auth";
 import { missingSettings } from "@/lib/config";
 import { logoutAction } from "./actions";
+import { PendingButton } from "../PendingButton";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -18,9 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/staff">Staff console</Link>
           <span className="muted small">Signed in as {role === "tim" ? "Tim" : "staff"}</span>
           <form action={logoutAction} style={{ marginLeft: "auto" }}>
-            <button className="btn btn-secondary btn-sm" type="submit">
-              Sign out
-            </button>
+            <PendingButton className="btn btn-secondary btn-sm" label="Sign out" pendingLabel="Signing out…" />
           </form>
         </nav>
       )}

@@ -6,7 +6,7 @@ import { notifyStaff, notifyTim, safely, sendEmail, sendSms } from "../notify";
 import { createPrivateSchedulingLink } from "../scheduling";
 import { getStore } from "../store";
 import { makeToken, newNonce, nonceMatches, parseToken } from "../tokens";
-import { apply, firstName, load, nowIso, WorkflowError, type Actor } from "./core";
+import { apply, firstName, load, markFresh, nowIso, WorkflowError, type Actor } from "./core";
 
 export function scheduleLink(req: Pick<ConsultingRequest, "id" | "scheduleNonce">): string {
   if (!req.scheduleNonce) throw new WorkflowError("Request has no scheduling token");
@@ -54,18 +54,17 @@ export async function acceptRequest(id: string, actor: Actor = "tim"): Promise<C
     throw new WorkflowError(`Request is "${req.status}" and can no longer be accepted`);
   }
 
-  if (req.status === "Pending Tim Review") {
-    req = await apply(
-      req,
-      actor,
-      "Tim accepted discovery request",
-      { timDecision: "Accept", decisionDate: nowIso(), approvedToSchedule: true },
-      { to: "Approved to Schedule" },
-    );
-  }
-
   if (req.alternativeHandling) {
     // No recording consent: do NOT send the automated (recorded) booking link. Staff arranges it.
+    if (req.status === "Pending Tim Review") {
+      req = await apply(
+        req,
+        actor,
+        "Tim accepted discovery request",
+        { timDecision: "Accept", decisionDate: nowIso(), approvedToSchedule: true },
+        { to: "Approved to Schedule" },
+      );
+    }
     await getStore().createTask({
       matterId: "",
       requestId: req.id,
@@ -81,16 +80,30 @@ export async function acceptRequest(id: string, actor: Actor = "tim"): Promise<C
     return req;
   }
 
+  // The decision, the private scheduling link and "link sent" are saved in ONE Tape update, then the
+  // link is emailed/texted in the background.
   const providerUrl = req.schedulingProviderUrl ?? (await createPrivateSchedulingLink(req));
   const nonce = req.scheduleNonce ?? newNonce();
-  req = await getStore().updateRequest(req.id, { schedulingProviderUrl: providerUrl, scheduleNonce: nonce });
-  const link = scheduleLink(req);
+  const link = scheduleLink({ id: req.id, scheduleNonce: nonce });
   const minutes = config.scheduling.callDurationMinutes;
-
-  await safely("scheduling email", () => sendEmail(req.email, copy.timAccepted.subject, copy.timAccepted.body(firstName(req), link, minutes)));
-  await safely("scheduling sms", () => sendSms(req.phone, copy.timAccepted.sms(link, minutes)));
-
-  return apply(req, "system", "Private scheduling link sent (email + text)", { schedulingLinkSent: true, schedulingLinkSentAt: nowIso() });
+  const decided = req.status === "Pending Tim Review";
+  req = await apply(
+    req,
+    actor,
+    decided ? "Tim accepted discovery request — private scheduling link sent (email + text)" : "Private scheduling link sent (email + text)",
+    {
+      ...(decided ? { timDecision: "Accept" as const, decisionDate: nowIso(), approvedToSchedule: true } : {}),
+      schedulingProviderUrl: providerUrl,
+      scheduleNonce: nonce,
+      schedulingLinkSent: true,
+      schedulingLinkSentAt: nowIso(),
+    },
+    decided ? { to: "Approved to Schedule" } : {},
+  );
+  const client = req;
+  await safely("scheduling email", () => sendEmail(client.email, copy.timAccepted.subject, copy.timAccepted.body(firstName(client), link, minutes)));
+  await safely("scheduling sms", () => sendSms(client.phone, copy.timAccepted.sms(link, minutes)));
+  return req;
 }
 
 /** Tim: DECLINE — one action, reason optional. No scheduling access is ever sent. Idempotent. */
@@ -126,5 +139,5 @@ export async function resolveScheduleToken(token: string): Promise<ConsultingReq
   if (!req || !nonceMatches(req.scheduleNonce, parsed.nonce)) return null;
   if (req.alternativeHandling || !req.approvedToSchedule) return null;
   if (req.status !== "Approved to Schedule" && req.status !== "Discovery Scheduled") return null;
-  return req;
+  return markFresh(req);
 }

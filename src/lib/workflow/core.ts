@@ -15,10 +15,19 @@ export type Actor = "tim" | "staff" | "client" | "system" | "stripe" | "schedule
 
 export const nowIso = () => new Date().toISOString();
 
+// Requests read (or written) moments ago in this same action. Their audit trail is current, so the
+// next update can append to it without re-reading the record from Tape first.
+const freshAt = new WeakMap<ConsultingRequest, number>();
+const FRESH_MS = 10_000;
+export function markFresh<T extends ConsultingRequest | null>(r: T): T {
+  if (r) freshAt.set(r, Date.now());
+  return r;
+}
+
 export async function load(id: string): Promise<ConsultingRequest> {
   const r = await getStore().getRequest(id);
   if (!r) throw new WorkflowError(`Consulting request ${id} not found`, "not_found");
-  return r;
+  return markFresh(r);
 }
 
 /**
@@ -39,7 +48,9 @@ export async function apply(
   const fullPatch: RequestPatch = opts.to ? { ...patch, status: opts.to } : patch;
   const statusNote = opts.to && opts.to !== req.status ? `status: ${req.status} → ${opts.to}` : undefined;
   const entry = { at: nowIso(), actor, action, detail: [statusNote, opts.detail].filter(Boolean).join("; ") || undefined };
-  return store.updateRequest(req.id, fullPatch, entry);
+  const seen = freshAt.get(req);
+  const current = seen !== undefined && Date.now() - seen < FRESH_MS ? req.auditLog : undefined;
+  return markFresh(await store.updateRequest(req.id, fullPatch, entry, current));
 }
 
 export function firstName(req: ConsultingRequest): string {

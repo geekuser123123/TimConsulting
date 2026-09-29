@@ -141,6 +141,23 @@ describe("TapeStore", () => {
     expect(await store.findContact("other@example.com", "555-999-4567")).toBeNull();
   });
 
+  it("Tim's Accept is one read and one write to Tape (no extra audit re-read)", async () => {
+    const { store } = await setup();
+    setStore(store);
+    const req = await submit();
+    const before = tape.calls.length;
+    const accepted = await acceptRequest(req.id);
+    const calls = tape.calls.slice(before).filter((c) => c.path.includes(`/record/${req.id}`));
+    expect(calls.map((c) => c.method)).toEqual(["GET", "PUT"]);
+    expect(accepted).toMatchObject({ status: "Approved to Schedule", schedulingLinkSent: true });
+    // The audit trail still has every entry, in order
+    expect(accepted.auditLog.map((e) => e.action)).toEqual([
+      "Request submitted via website",
+      "Staff sent request to Tim for review",
+      "Tim accepted discovery request — private scheduling link sent (email + text)",
+    ]);
+  });
+
   it("runs a full journey with Tape as the CRM", async () => {
     const { store, appIds } = await setup();
     setStore(store);
