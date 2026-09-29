@@ -44,10 +44,11 @@ export default async function ProposalPage({ params, searchParams }: { params: P
   const awaitingDecision = req.status === "Proposal Sent";
   const needsSignature = req.clientDecision === "Accepted" && req.engagementAgreementStatus === "Pending Signature";
   const needsPayment = req.status === "Accepted - Payment Pending" && !needsSignature;
-  // Over $500: ACH bank payment; at or below: card (see STRIPE_ACH_ABOVE).
+  // Over $500: ACH bank payment only; at or below: any method enabled in Stripe (see STRIPE_ACH_ABOVE).
   const methods = config.stripe.paymentMethodsFor(req.feeAmount ?? 0);
-  const payHow =
-    methods.includes("us_bank_account") && methods.includes("card")
+  const payHow = !methods
+    ? "by card, bank account or another available method"
+    : methods.includes("us_bank_account") && methods.includes("card")
       ? "from your bank account (ACH) or by card"
       : methods.includes("us_bank_account")
         ? "from your bank account (ACH)"
