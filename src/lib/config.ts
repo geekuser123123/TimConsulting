@@ -213,24 +213,25 @@ export const config = {
     get enabled() {
       return Boolean(process.env.STRIPE_SECRET_KEY);
     },
-    /** Fees above this many dollars are paid by ACH bank transfer only; at or below it, by card. */
+    /** Fees above this many dollars are paid by ACH bank transfer only; at or below it, any method. */
     get achAbove(): number {
       const n = Number(process.env.STRIPE_ACH_ABOVE ?? 500);
       return Number.isFinite(n) && n >= 0 ? n : 500;
     },
     /**
      * Payment methods offered on Stripe Checkout for a fee of `amountUsd`: over STRIPE_ACH_ABOVE
-     * (default $500) → ACH bank payment only; otherwise → card (debit/credit). STRIPE_PAYMENT_METHODS
-     * (comma-separated, e.g. "us_bank_account,card") overrides this for every payment. Each method
-     * must be turned on in Stripe → Settings → Payment methods.
+     * (default $500) → ACH bank payment only; otherwise → null, meaning every method turned on in
+     * Stripe → Settings → Payment methods (card, Apple/Google Pay, Link, ACH, …).
+     * STRIPE_PAYMENT_METHODS (comma-separated, e.g. "us_bank_account,card") overrides this for
+     * every payment.
      */
-    paymentMethodsFor(amountUsd: number): string[] {
+    paymentMethodsFor(amountUsd: number): string[] | null {
       const override = (process.env.STRIPE_PAYMENT_METHODS ?? "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
       if (override.length) return override;
-      return amountUsd > this.achAbove ? ["us_bank_account"] : ["card"];
+      return amountUsd > this.achAbove ? ["us_bank_account"] : null;
     },
   },
 
