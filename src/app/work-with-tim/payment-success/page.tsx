@@ -15,20 +15,25 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
   const { t } = await searchParams;
   const req = t ? await resolveProposalToken(t) : null;
   const confirmed = req?.paymentStatus === "Paid";
+  const processing = req?.paymentStatus === "Processing";
 
   return (
     <main>
       <PageHero eyebrow="Payment" title={<>Thank you for <em>your payment.</em></>} />
       <div className="container">
       <div className="card">
-        {confirmed ? (
+        {processing ? (
+          <p className="lead">
+            Your bank payment has been submitted. Bank (ACH) payments usually take 3–5 business days to clear. We&rsquo;ll email you as soon as it&rsquo;s complete, and our team will then contact you about next steps.
+          </p>
+        ) : confirmed ? (
           <p className="lead">Your payment has been confirmed. Our team will contact you regarding the information and documents needed to begin the work.</p>
         ) : (
           <p className="lead">
             <span className="spinner" aria-hidden="true" /> Your payment is being confirmed. This usually takes a few seconds. You&rsquo;ll also receive an email receipt, and our team will contact you about next steps.
           </p>
         )}
-        {t && req && <RefreshUntilConfirmed confirmed={confirmed} />}
+        {t && req && <RefreshUntilConfirmed confirmed={confirmed || processing} />}
         {t && req && (
           <p>
             <Link href={`/work-with-tim/proposal/${t}`}>View your proposal</Link>

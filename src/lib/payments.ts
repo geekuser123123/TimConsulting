@@ -44,6 +44,9 @@ export class StripeGateway implements PaymentGateway {
     const expiresAt = Math.floor(Date.now() / 1000) + 23 * 60 * 60; // Stripe max is 24h; we regenerate on demand
     const session = await s.checkout.sessions.create({
       mode: "payment",
+      // ACH (us_bank_account) by default; the client links their bank instantly via Stripe.
+      payment_method_types: config.stripe.paymentMethods as Stripe.Checkout.SessionCreateParams.PaymentMethodType[],
+      ...(config.stripe.paymentMethods.includes("us_bank_account") ? { payment_method_options: { us_bank_account: { verification_method: "automatic" as const } } } : {}),
       ...(customerId ? { customer: customerId } : { customer_email: req.email, customer_creation: "always" as const }),
       client_reference_id: req.id,
       line_items: [

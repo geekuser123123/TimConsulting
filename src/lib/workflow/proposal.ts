@@ -104,9 +104,11 @@ export async function declineProposal(token: string, reason?: string, comment?: 
  */
 export async function getPaymentUrl(req: ConsultingRequest): Promise<string | null> {
   if (!req.paymentRequired || req.paymentStatus === "Paid" || req.status !== "Accepted - Payment Pending") return null;
+  // A bank payment is already clearing: never offer a second checkout.
+  if (req.paymentStatus === "Processing") return null;
   if (req.engagementAgreementStatus === "Pending Signature") return null;
   const expires = req.stripePaymentUrlExpiresAt ? Date.parse(req.stripePaymentUrlExpiresAt) : 0;
-  if (req.stripePaymentUrl && expires - Date.now() > 15 * 60 * 1000) return req.stripePaymentUrl;
+  if (req.paymentStatus !== "Failed" && req.stripePaymentUrl && expires - Date.now() > 15 * 60 * 1000) return req.stripePaymentUrl;
 
   const checkout = await paymentGateway().createCheckout(req, proposalToken(req));
   // The client goes straight to Stripe; saving the link on the record happens in the background.
@@ -132,10 +134,63 @@ export interface PaidCheckout {
   customer?: string | { id: string } | null;
 }
 
+function paidRequestId(session: PaidCheckout): string | null {
+  return session.metadata?.[METADATA_KEY] ?? session.client_reference_id ?? null;
+}
+
+/**
+ * Stripe webhook: checkout finished with a bank (ACH) payment that hasn't cleared yet. The request
+ * shows "Processing"; the client is told it takes a few business days. Paid follows via
+ * checkout.session.async_payment_succeeded, or Failed via checkout.session.async_payment_failed.
+ */
+export async function recordPaymentProcessing(session: PaidCheckout): Promise<ConsultingRequest | null> {
+  const requestId = paidRequestId(session);
+  if (!requestId || session.payment_status === "paid") return null;
+  const req = await load(requestId);
+  if (req.paymentStatus === "Paid" || req.paymentStatus === "Processing") return req;
+  const amount = (session.amount_total ?? 0) / 100;
+  const updated = await apply(
+    req,
+    "stripe",
+    "Bank (ACH) payment submitted — clearing",
+    { paymentStatus: "Processing", stripeCheckoutId: session.id },
+    { detail: `${formatUsd(amount)}; usually clears in 3–5 business days` },
+  );
+  await safely("payment processing email", () => sendEmail(req.email, copy.paymentProcessing.subject, copy.paymentProcessing.body(firstName(req), formatUsd(amount))));
+  await notifyStaff(
+    `Bank payment submitted: ${req.clientName}`,
+    `${req.clientName} paid ${formatUsd(amount)} by bank transfer (ACH). It is clearing (usually 3–5 business days); the request updates automatically when it clears or if it fails.\n\n${config.siteUrl}/admin/staff/${req.id}`,
+  );
+  return updated;
+}
+
+/** Stripe webhook: the bank returned the ACH payment. Client can pay again from their proposal. */
+export async function recordPaymentFailed(session: PaidCheckout): Promise<ConsultingRequest | null> {
+  const requestId = paidRequestId(session);
+  if (!requestId) return null;
+  const req = await load(requestId);
+  if (req.paymentStatus === "Paid" || req.paymentStatus === "Failed") return req;
+  const amount = session.amount_total != null ? session.amount_total / 100 : (req.feeAmount ?? 0);
+  const updated = await apply(
+    req,
+    "stripe",
+    "Bank (ACH) payment failed",
+    { paymentStatus: "Failed", stripePaymentUrl: undefined, stripePaymentUrlExpiresAt: undefined },
+    { detail: `${formatUsd(amount)}; ${session.id}` },
+  );
+  const link = req.proposalUrl ?? `${config.siteUrl}/work-with-tim/proposal/${proposalToken(req)}`;
+  await safely("payment failed email", () => sendEmail(req.email, copy.paymentFailed.subject, copy.paymentFailed.body(firstName(req), formatUsd(amount), link)));
+  await notifyStaff(
+    `Bank payment FAILED: ${req.clientName}`,
+    `The bank (ACH) payment of ${formatUsd(amount)} from ${req.clientName} failed. The client was emailed a link to pay again. You may want to follow up.\n\n${config.siteUrl}/admin/staff/${req.id}`,
+  );
+  return updated;
+}
+
 /** Stripe webhook: successful payment → Tape updated automatically → matter opens if ready. */
 export async function recordPayment(session: PaidCheckout): Promise<ConsultingRequest | null> {
   if (session.payment_status !== "paid") return null;
-  const requestId = session.metadata?.[METADATA_KEY] ?? session.client_reference_id;
+  const requestId = paidRequestId(session);
   if (!requestId) return null;
   let req = await load(requestId);
   if (req.paymentStatus === "Paid") return req; // webhook retry

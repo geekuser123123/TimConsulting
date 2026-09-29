@@ -131,7 +131,7 @@ export const REQUEST_FIELDS: Record<RequestKey, TapeFieldDef> = {
   stripeCheckoutId: { externalId: "stripe_checkout_id", label: "Stripe Invoice / Checkout ID", type: "text", section: "Stripe" },
   stripePaymentUrl: { externalId: "stripe_payment_url", label: "Stripe Payment URL", type: "text", section: "Stripe" },
   stripePaymentUrlExpiresAt: { externalId: "stripe_payment_url_expires", label: "Stripe Payment URL Expires", type: "date", section: "Stripe", internal: true },
-  paymentStatus: { externalId: "payment_status", label: "Payment Status", type: "category", section: "Stripe", options: ["Not Required", "Unpaid", "Paid", "Refunded"] },
+  paymentStatus: { externalId: "payment_status", label: "Payment Status", type: "category", section: "Stripe", options: ["Not Required", "Unpaid", "Processing", "Paid", "Failed", "Refunded"] },
   amountPaid: { externalId: "amount_paid", label: "Amount Paid", type: "number", section: "Stripe" },
   paymentDate: { externalId: "payment_date", label: "Payment Date", type: "date", section: "Stripe" },
   stripePaymentId: { externalId: "stripe_payment_id", label: "Stripe Payment ID", type: "text", section: "Stripe" },

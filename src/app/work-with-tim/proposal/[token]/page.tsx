@@ -71,7 +71,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
         </section>
         <section className="proposal-section">
           <h2>Payment</h2>
-          <p>{req.paymentRequired ? "Payment is required before work begins. You can pay securely by card after accepting." : "No payment is required before work begins."}</p>
+          <p>{req.paymentRequired ? "Payment is required before work begins. You can pay securely from your bank account (ACH) through Stripe after accepting." : "No payment is required before work begins."}</p>
         </section>
 
         {awaitingDecision && (
@@ -97,12 +97,21 @@ export default async function ProposalPage({ params, searchParams }: { params: P
       {needsPayment && (
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Payment</h2>
-          <p>
-            Your professional fee of <strong>{formatUsd(req.feeAmount)}</strong> is due before work begins.
-          </p>
-          <form action={payNowAction.bind(null, token)}>
-            <PendingButton className="btn btn-gold" label="Pay securely with Stripe" pendingLabel="Opening secure checkout…" />
-          </form>
+          {req.paymentStatus === "Processing" ? (
+            <p>
+              Your bank payment of <strong>{formatUsd(req.feeAmount)}</strong> has been submitted and is clearing. Bank (ACH) payments usually take 3–5 business days. We&rsquo;ll email you when it&rsquo;s complete.
+            </p>
+          ) : (
+            <>
+              {req.paymentStatus === "Failed" && <div className="notice bad">Your previous bank payment didn&rsquo;t go through. Please try again below.</div>}
+              <p>
+                Your professional fee of <strong>{formatUsd(req.feeAmount)}</strong> is due before work begins. You&rsquo;ll pay securely from your bank account (ACH) through Stripe.
+              </p>
+              <form action={payNowAction.bind(null, token)}>
+                <PendingButton className="btn btn-gold" label="Pay securely with Stripe" pendingLabel="Opening secure checkout…" />
+              </form>
+            </>
+          )}
         </div>
       )}
       </div>

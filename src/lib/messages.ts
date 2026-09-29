@@ -82,6 +82,18 @@ export const copy = {
       `Hi ${firstName},\n\nA quick note that your proposed scope of work is still available here:\n\n${link}\n\nNo action is needed if you've decided not to move forward.\n\n${SIGNATURE}`,
   },
 
+  paymentProcessing: {
+    subject: "Your bank payment is processing",
+    body: (firstName: string, amount: string) =>
+      `Hi ${firstName},\n\nThank you. Your bank payment of ${amount} has been submitted. Bank (ACH) payments usually take 3–5 business days to clear. We will email you as soon as it is complete, and our team will then contact you about next steps.\n\n${SIGNATURE}`,
+  },
+
+  paymentFailed: {
+    subject: "Your bank payment did not go through",
+    body: (firstName: string, amount: string, link: string) =>
+      `Hi ${firstName},\n\nYour bank payment of ${amount} was not completed by your bank. No work has started yet. You can try again here:\n\n${link}\n\nIf you have questions, just reply to this email.\n\n${SIGNATURE}`,
+  },
+
   paymentReceived: {
     subject: "Payment received — thank you",
     body: (firstName: string, amount: string) =>
